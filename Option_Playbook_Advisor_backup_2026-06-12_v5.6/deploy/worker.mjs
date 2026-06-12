@@ -373,7 +373,7 @@ async function fetchMarket() {
   try {
     return await fetchNaverKpi200Daily(targetDate);
   } catch {}
-  return { ...FALLBACK_MARKET, asOfTime: FALLBACK_MARKET.asOfDate + " 저장 스냅샷", targetDate, stale: true };
+  return { ...FALLBACK_MARKET, asOfDate: targetDate, asOfTime: targetDate + " 종가 기준 (저장 스냅샷)", targetDate, stale: true, dataPolicy: "previous-business-day-close" };
 }
 
 function googleSearchUrl(query) {

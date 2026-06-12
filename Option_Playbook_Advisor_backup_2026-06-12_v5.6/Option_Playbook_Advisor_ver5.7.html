@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Option Playbook Advisor ver 5.7</title>
+  <style>
+    :root {
+      --bg: #050806;
+      --panel: #143926;
+      --panel-alt: #ef7d21;
+      --panel-dark: #0d1510;
+      --card: #111714;
+      --card-soft: #1a211d;
+      --ink: #f5f0e6;
+      --muted: #d7cfbf;
+      --line: #050505;
+      --green: #0fb26f;
+      --blue: #79a8ff;
+      --orange: #ff7a00;
+      --red: #ff5d3d;
+      --yellow: #ffd84d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "Malgun Gothic", Arial, sans-serif; background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0)), var(--bg); color: var(--ink); }
+    .app { min-height: 100vh; padding: 24px; display: grid; gap: 22px; }
+    .topbar, .panel, .strategy-card, .news-item, .mini-card, .badge-card { border: 3px solid var(--line); box-shadow: none; border-radius: 0; }
+    .topbar { padding: 0; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, .9fr); background: #050505; color: #fff8ef; }
+    .hero-copy { padding: 28px; display: grid; gap: 14px; background: #0f4f31; min-height: 248px; }
+    .hero-warning { padding: 28px; display: grid; align-content: start; gap: 14px; background: #f67a18; color: #130b05; min-height: 248px; }
+    .hero-actions { display:flex; justify-content:flex-start; align-items:center; gap:12px; flex-wrap:wrap; }
+    h1 { margin: 0; font-size: clamp(34px, 7vw, 68px); line-height: .9; letter-spacing: 0; font-weight: 950; }
+    .topbar p { margin: 0; max-width: 980px; color: #fff3df; line-height: 1.8; font-size: 24px; }
+    .warning-title { display: inline-block; width: fit-content; padding: 6px 10px; background: #050505; color: #fff3df; font-size: 14px; font-weight: 950; text-transform: uppercase; }
+    .warning-copy { margin: 0; font-size: 23px; line-height: 1.8; font-weight: 850; color: #1b1109; }
+    .grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; align-items: start; }
+    .panel { padding: 22px; background: var(--panel); color: var(--ink); }
+    .panel.theme-orange { background: var(--panel-alt); color: #160d06; }
+    .panel.theme-orange .panel-date { background: #1c1109; color: #fff1df; }
+    .panel.theme-orange .panel h3 {}
+    .panel.theme-orange .mini-card,
+    .panel.theme-orange .badge-card,
+    .panel.theme-orange .news-item,
+    .panel.theme-orange .strategy-card { background: #23160d; color: var(--ink); }
+    .panel.theme-green { background: #165236; }
+    .panel.theme-dark { background: var(--panel-dark); }
+    .panel h2, .panel h3 { margin: 0 0 14px; }
+    .panel h2 { font-size: 36px; font-weight: 950; line-height: .98; }
+    .panel-head { display:flex; align-items:baseline; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+    .panel-date { display:inline-block; padding:7px 12px; background:#fff3df; border:3px solid var(--line); font-size:16px; font-weight:950; color:#2f2518; }
+    .panel h3 { display: inline-block; padding: 5px 10px; background: var(--line); color: #fff; font-size: 14px; text-transform: uppercase; letter-spacing: 0; font-weight: 950; }
+    .market-grid, .state-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+    .mini-card, .badge-card { padding: 18px; background: var(--card); min-height: 128px; color: var(--ink); }
+    .mini-card b, .badge-card b { display: block; font-size: 14px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; font-weight: 950; }
+    .mini-card span, .badge-card span { font-size: 31px; font-weight: 950; line-height: 1.05; color: var(--ink); }
+    .badge-card span { font-size: 29px; }
+    .badge-card.state-bull { background: #0f6a43; }
+    .badge-card.state-bear { background: #7f2818; }
+    .badge-card.state-neutral { background: #8b470d; }
+    .badge-card.state-vol-high { background: #8b470d; }
+    .badge-card.state-vol-mid { background: #654a1b; }
+    .badge-card.state-vol-low { background: #34571d; }
+    .badge-card.state-risk-high { background: #99331f; }
+    .badge-card.state-risk-mid { background: #734315; }
+    .badge-card.state-conviction-high { background: #1f5b3f; }
+    .badge-card.state-conviction-mid { background: #3b391f; }
+    .badge-card.state-conviction-low { background: #30322f; }
+    .positive { color: var(--green); }
+    .negative { color: var(--red); }
+    .neutral { color: var(--orange); }
+    .strategies { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .strategy-card { padding: 20px; background: var(--card); color: var(--ink); min-height: 320px; }
+    .strategy-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+    .strategy-head h4 { margin: 0; font-size: 29px; line-height: 1.02; font-weight: 950; }
+    .score { min-width: 108px; padding: 11px 12px; text-align: right; background: var(--yellow); color: #111; font-weight: 950; font-size: 32px; line-height: .95; border: 3px solid var(--line); }
+    .sub { margin-top: 8px; color: var(--muted); font-size: 14px; font-weight: 800; text-transform: uppercase; }
+    .summary { margin: 16px 0 0; line-height: 1.8; color: #eee3cf; font-size: 24px; }
+    .bullets { margin: 14px 0 0; padding-left: 26px; display: grid; gap: 10px; color: #eee3cf; font-size: 20px; line-height: 1.8; }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+    .cta, .secondary { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 12px 18px; border: 3px solid var(--line); text-decoration: none; color: var(--ink); font-weight: 950; font-size: 18px; }
+    .cta { background: var(--yellow); color: #131313; }
+    .secondary { background: var(--orange); color: #160d06; }
+    .update-button { min-width: 180px; box-shadow: 5px 5px 0 #050505; transition: transform .08s ease, box-shadow .08s ease; }
+    .update-button:hover { transform: translate(-1px, -1px); box-shadow: 6px 6px 0 #050505; }
+    .update-button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #050505; }
+    .rationale-list, .watch-grid, .news-list { display: grid; gap: 14px; }
+    .news-item { padding: 18px; background: var(--card); color: var(--ink); min-height: 132px; display: grid; align-content: start; }
+    .news-item b { display: block; margin-bottom: 8px; font-size: 24px; line-height: 1.35; }
+    .news-item a { color: #fff7ea; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+    .news-item a:hover { color: var(--yellow); }
+    .commentary-tile { display: grid; gap: 10px; min-height: 220px; }
+    .commentary-line { color: #f2e6d1; line-height: 1.85; font-size: 23px; }
+    .foot { color: var(--muted); font-size: 18px; line-height: 1.8; }
+    .source-tag { display:inline-block; margin-right:8px; padding:4px 8px; background: var(--orange); color:#170e06; border:2px solid var(--line); font-size:14px; font-weight:950; text-transform:uppercase; }
+    .sub { margin-top: 10px; color: var(--muted); font-size: 18px; font-weight: 850; text-transform: uppercase; line-height: 1.65; }
+    .theme-orange .source-tag { background: var(--green); color:#08130d; }
+    @media (max-width: 980px) {
+      .topbar { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+      .market-grid, .state-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 640px) {
+      .app { padding: 12px; gap: 14px; }
+      .hero-copy, .hero-warning, .panel, .strategy-card { padding: 14px; min-height: auto; }
+      .news-item, .mini-card, .badge-card { min-height: auto; }
+      .market-grid, .state-grid { grid-template-columns: 1fr; }
+      .strategy-head { flex-direction: column; }
+      .score { width: 100%; text-align: left; }
+    }
+  </style>
+</head>
+  <body>
+  <main class="app">
+    <section class="topbar">
+      <div class="hero-copy">
+        <div class="hero-actions">
+          <button class="secondary update-button" id="refreshButton" type="button">데이터 업데이트</button>
+        </div>
+        <h1>Option Playbook Advisor</h1>
+        <p>현재 KOSPI200 레벨, 추정 변동성, 공개 뉴스 헤드라인과 예정 이벤트를 결합해 오늘 가장 적합한 옵션 합성전략 9개와 피해야 할 전략 6개를 함께 비교합니다.</p>
+      </div>
+      <aside class="hero-warning">
+        <span class="warning-title">Important</span>
+        <p class="warning-copy">이 Advisor는 공개 시장 데이터와 헤드라인, 규칙 기반 해석을 결합한 참고용 도구입니다. 실제 투자 판단과 손익 책임은 전적으로 본인에게 있으며, 실전 적용 전에는 옵션 이론가와 유동성, 이벤트 일정, 포지션 한도를 반드시 별도로 점검해야 합니다.</p>
+      </aside>
+    </section>
+
+    <section class="panel theme-green">
+      <div class="panel-head">
+        <h2>오늘의 시장 상태</h2>
+        <span class="panel-date" id="marketAsOf">기준일 -</span>
+      </div>
+      <div class="market-grid" id="marketGrid"></div>
+      <div style="height:10px"></div>
+      <div class="state-grid" id="stateGrid"></div>
+    </section>
+
+    <section class="panel theme-orange">
+      <h2>뉴스 키워드 테마 View</h2>
+      <div class="rationale-list" id="headlineCommentary"></div>
+      <div style="height:14px"></div>
+      <div class="news-list" id="newsList"></div>
+    </section>
+
+    <section class="panel theme-green">
+      <h2>증권사 리포트 검색 View</h2>
+      <div class="rationale-list" id="reportCommentary"></div>
+      <div style="height:14px"></div>
+      <div class="news-list" id="reportList"></div>
+    </section>
+
+    <section class="grid">
+      <section class="panel theme-dark">
+        <h2>상위 추천 전략 TOP 9</h2>
+        <div class="strategies" id="strategyList"></div>
+      </section>
+
+      <section class="panel theme-orange">
+        <h2>시장 해석</h2>
+        <div class="rationale-list" id="rationaleList"></div>
+        <div style="height:18px"></div>
+        <h3>Avoid Now 6</h3>
+        <div class="strategies" id="avoidList"></div>
+      </section>
+    </section>
+
+    <section class="grid">
+      <section class="panel theme-green">
+        <h2>운영 메모</h2>
+        <div class="rationale-list" id="opsNotes"></div>
+        <div style="height:14px"></div>
+        <div class="cta-row">
+          <a class="cta" href="https://bitter-morning-77fd.jager001.workers.dev" target="_blank" rel="noreferrer">Option Playbook 열기</a>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script>
+    const BOOTSTRAP = {"market":{"asOfDate":"2026-06-10","spot":1227.12,"change1d":0.8,"change5d":2.1,"change21d":5.6,"realizedVol20":24.8},"headlines":[{"title":"반도체/AI 수급: 삼성전자, SK하이닉스, HBM, 외국인 매수","date":"2026-06-10","url":"https://www.google.com/search?q=2026-06-10%20%EC%BD%94%EC%8A%A4%ED%94%BC200%20%EB%B0%98%EB%8F%84%EC%B2%B4%20AI%20%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90%20SK%ED%95%98%EC%9D%B4%EB%8B%89%EC%8A%A4%20HBM%20%EC%99%B8%EA%B5%AD%EC%9D%B8","keywords":["삼성전자","SK하이닉스","HBM","외국인 매수"],"rank":1},{"title":"금리/환율 이벤트: 연준, 한국은행, 달러원, 국채금리","date":"2026-06-10","url":"https://www.google.com/search?q=2026-06-10%20%EC%BD%94%EC%8A%A4%ED%94%BC200%20%EA%B8%88%EB%A6%AC%20%ED%99%98%EC%9C%A8%20%EC%97%B0%EC%A4%80%20%ED%95%9C%EA%B5%AD%EC%9D%80%ED%96%89%20%EB%8B%AC%EB%9F%AC%EC%9B%90","keywords":["연준","한국은행","달러원","국채금리"],"rank":2},{"title":"지수 모멘텀: 코스피200, 신고가, 차익실현, 프로그램 매매","date":"2026-06-10","url":"https://www.google.com/search?q=2026-06-10%20%EC%BD%94%EC%8A%A4%ED%94%BC200%20%EC%A7%80%EC%88%98%20%EB%AA%A8%EB%A9%98%ED%85%80%20%EC%8B%A0%EA%B3%A0%EA%B0%80%20%EC%B0%A8%EC%9D%B5%EC%8B%A4%ED%98%84%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%A8%20%EB%A7%A4%EB%A7%A4","keywords":["코스피200","신고가","차익실현","프로그램 매매"],"rank":3},{"title":"변동성/옵션 이벤트: VKOSPI, 옵션만기, 변동성, 이벤트 리스크","date":"2026-06-10","url":"https://www.google.com/search?q=2026-06-10%20VKOSPI%20%EC%BD%94%EC%8A%A4%ED%94%BC200%20%EC%98%B5%EC%85%98%EB%A7%8C%EA%B8%B0%20%EB%B3%80%EB%8F%99%EC%84%B1%20%EC%9D%B4%EB%B2%A4%ED%8A%B8%20%EB%A6%AC%EC%8A%A4%ED%81%AC","keywords":["VKOSPI","옵션만기","변동성","이벤트 리스크"],"rank":4},{"title":"대외 리스크: 미국 증시, 중국 경기, 관세, 지정학","date":"2026-06-10","url":"https://www.google.com/search?q=2026-06-10%20%EC%BD%94%EC%8A%A4%ED%94%BC200%20%EB%AF%B8%EA%B5%AD%20%EC%A6%9D%EC%8B%9C%20%EC%A4%91%EA%B5%AD%20%EA%B2%BD%EA%B8%B0%20%EA%B4%80%EC%84%B8%20%EC%A7%80%EC%A0%95%ED%95%99%20%EB%A6%AC%EC%8A%A4%ED%81%AC","keywords":["미국 증시","중국 경기","관세","지정학"],"rank":5}],"reports":[{"title":"시장전략 컨센서스: 운용전략, 코스피 전망, 상단/하단, 리스크","date":"2026-06-10","url":"https://www.google.com/search?q=2026-06-10%20%EC%A6%9D%EA%B6%8C%EC%82%AC%20%EC%9A%B4%EC%9A%A9%EC%A0%84%EB%9E%B5%20%EC%BD%94%EC%8A%A4%ED%94%BC%20%EC%A0%84%EB%A7%9D%20%EC%83%81%EB%8B%A8%20%ED%95%98%EB%8B%A8%20%EB%A6%AC%EC%8A%A4%ED%81%AC","keywords":["운용전략","코스피 전망","상단/하단","리스크"],"source":"전략 리포트 검색","rank":1},{"title":"반도체 이익전망: 반도체, AI, 이익전망, 목표주가","date":"2026-06-10","url":"https://www.google.com/search?q=2026-06-10%20%EC%A6%9D%EA%B6%8C%EC%82%AC%20%EB%A6%AC%ED%8F%AC%ED%8A%B8%20%EB%B0%98%EB%8F%84%EC%B2%B4%20AI%20%EC%9D%B4%EC%9D%B5%EC%A0%84%EB%A7%9D%20%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90%20SK%ED%95%98%EC%9D%B4%EB%8B%89%EC%8A%A4","keywords":["반도체","AI","이익전망","목표주가"],"source":"업종 리포트 검색","rank":2},{"title":"금리/환율 시나리오: 금리, 환율, 연준, 한국은행","date":"2026-06-10","url":"https://www.google.com/search?q=2026-06-10%20%EC%A6%9D%EA%B6%8C%EC%82%AC%20%EB%A6%AC%ED%8F%AC%ED%8A%B8%20%EA%B8%88%EB%A6%AC%20%ED%99%98%EC%9C%A8%20%EC%97%B0%EC%A4%80%20%ED%95%9C%EA%B5%AD%EC%9D%80%ED%96%89%20%EC%BD%94%EC%8A%A4%ED%94%BC","keywords":["금리","환율","연준","한국은행"],"source":"매크로 리포트 검색","rank":3},{"title":"외국인/기관 수급: 외국인, 기관, 선물, 프로그램","date":"2026-06-10","url":"https://www.google.com/search?q=2026-06-10%20%EC%A6%9D%EA%B6%8C%EC%82%AC%20%EB%A6%AC%ED%8F%AC%ED%8A%B8%20%EC%99%B8%EA%B5%AD%EC%9D%B8%20%EA%B8%B0%EA%B4%80%20%EC%88%98%EA%B8%89%20%EC%84%A0%EB%AC%BC%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%A8%20%EC%BD%94%EC%8A%A4%ED%94%BC200","keywords":["외국인","기관","선물","프로그램"],"source":"수급 리포트 검색","rank":4},{"title":"변동성/파생 포지션: VKOSPI, 옵션, 만기, 헤지","date":"2026-06-10","url":"https://www.google.com/search?q=2026-06-10%20%EC%A6%9D%EA%B6%8C%EC%82%AC%20%EB%A6%AC%ED%8F%AC%ED%8A%B8%20VKOSPI%20%EC%98%B5%EC%85%98%20%EB%A7%8C%EA%B8%B0%20%ED%97%A4%EC%A7%80%20%EC%BD%94%EC%8A%A4%ED%94%BC200","keywords":["VKOSPI","옵션","만기","헤지"],"source":"변동성 리포트 검색","rank":5}],"events":[],"state":{"bias":"강세","volatility":"보통","eventRisk":"높음","conviction":"보통","rationale":["최근 1개월 KOSPI200 변화율은 +5.6%이며, 1주 변화율은 +2.1%입니다.","20일 실현변동성 추정치는 +24.8%로 읽히며, 현재 변동성 레짐은 보통으로 분류했습니다.","헤드라인 신호는 강세 1, 약세 3, 이벤트/변동성 3건으로 집계했습니다."],"signalCounts":{"bull":1,"bear":3,"vol":3}},"headlineCommentary":["헤드라인 묶음의 중심 톤은 강세 쪽이며, 현재 확신도는 보통 수준으로 해석했습니다.","최근 1개월 +5.6% 흐름과 1주 +2.1% 변화율을 함께 보면, 단기 모멘텀은 위쪽으로 기울어 있습니다.","변동성 신호는 3건으로 집계되어, 시장이 방향 자체보다 이벤트 경로와 속도에 민감한 상태로 읽힙니다.","약세 키워드가 더 많아, 긴축·차익실현·지정학 리스크가 헤드라인의 주도 서사로 읽힙니다.","따라서 단순한 방향 베팅 하나보다, 현재 레짐에 맞는 손실 구조와 변동성 노출을 함께 보는 전략 선택이 중요합니다.","오늘 묶은 5개 헤드라인은 모두 같은 결론을 말하진 않지만, 공통적으로 '추세는 남아 있고 이벤트 민감도도 높다'는 메시지를 줍니다."],"reportCommentary":["증권사 운용전략 헤드라인은 뉴스보다 문장이 덜 급하지만, 실제로는 포지션 추천의 결을 더 직접적으로 드러내는 경우가 많습니다.","현재 묶음에서는 중립적 선별 대응 쪽 메시지가 상대적으로 더 자주 보입니다.","시장 상태 기준으로는 강세 해석이 우세하고, 최근 1개월 +5.6% 흐름을 감안하면 리포트도 추세 추종과 레짐 점검을 함께 요구하는 구간으로 읽힙니다.","반도체와 AI 관련 표현이 포함되어 있어, 실제 수급과 지수 기여도가 큰 대형주 모멘텀이 리포트의 핵심 배경 중 하나로 보입니다.","금리와 환율, 중앙은행 이벤트 언급이 섞여 있어 방향성 자체보다 할인율 변화와 외국인 수급 경로를 함께 봐야 하는 장세라는 신호가 보입니다.","변동성·불확실성 키워드가 반복되면, 단순 상방 추정이 맞더라도 프리미엄 구조와 손실 한도 설계가 더 중요해집니다.","따라서 이 섹션은 뉴스보다 한 단계 정제된 컨센서스 확인용으로 보고, 최종 전략 선택은 헤드라인 신호와 함께 교차 검증하는 용도로 쓰는 편이 좋습니다."],"recommendations":{"top":[{"slug":"risk-reversal","title":"Risk Reversal","category":"방향성 전략","bias":"bull","vol":"mixed","risk":"tail","eventFit":"high","cost":"low","summary":"강한 강세 뷰를 프리미엄 절감형으로 표현하지만 하단 tail risk를 안습니다.","score":92,"reasons":["시장 방향 해석이 강세 쪽으로 기울어 있습니다.","가까운 거시 이벤트를 감안해 이벤트 적합도가 높은 구조를 우대했습니다."],"cautions":[]},{"slug":"collar","title":"Collar","category":"헤지 전략","bias":"bull","vol":"mixed","risk":"defined","eventFit":"high","cost":"low","summary":"상방 일부를 포기하고 하단을 방어하는 보수형 구조입니다.","score":92,"reasons":["시장 방향 해석이 강세 쪽으로 기울어 있습니다.","가까운 거시 이벤트를 감안해 이벤트 적합도가 높은 구조를 우대했습니다."],"cautions":[]},{"slug":"call-backspread","title":"Call Backspread","category":"변동성 매수 전략","bias":"bull","vol":"buy","risk":"defined","eventFit":"high","cost":"medium","summary":"급등과 변동성 확대에 유리한 상방 볼록성 구조입니다.","score":84,"reasons":["시장 방향 해석이 강세 쪽으로 기울어 있습니다.","가까운 거시 이벤트를 감안해 이벤트 적합도가 높은 구조를 우대했습니다."],"cautions":[]}],"watchlist":[{"slug":"call-calendar-spread","title":"Call Calendar Spread","category":"만기 구조 전략","bias":"bull","vol":"mixed","risk":"defined","eventFit":"medium","cost":"medium","summary":"완만한 강세와 시간가치 차이를 동시에 활용하는 구조입니다.","score":82,"reasons":["시장 방향 해석이 강세 쪽으로 기울어 있습니다."],"cautions":[]},{"slug":"one-by-two-call-spread","title":"1x2 Call Ratio Spread","category":"비대칭 Ratio","bias":"bull","vol":"mixed","risk":"tail","eventFit":"medium","cost":"low","summary":"상승 목표구간에는 효율적이지만 상단 과속 시 리스크가 커집니다.","score":82,"reasons":["시장 방향 해석이 강세 쪽으로 기울어 있습니다."],"cautions":[]},{"slug":"bull-call-spread","title":"Bull Call Spread","category":"방향성 전략","bias":"bull","vol":"buy","risk":"defined","eventFit":"medium","cost":"medium","summary":"완만한 상승과 정의된 손실을 동시에 추구하는 기본 강세 구조입니다.","score":74,"reasons":["시장 방향 해석이 강세 쪽으로 기울어 있습니다."],"cautions":[]}],"avoided":[{"slug":"one-by-two-put-spread","title":"1x2 Put Ratio Spread","category":"비대칭 Ratio","bias":"bear","vol":"mixed","risk":"tail","eventFit":"medium","cost":"low","summary":"하락 목표구간에 효율적이지만 급락 tail risk가 존재합니다.","score":38,"reasons":[],"cautions":["현재 방향 해석과 반대편 구조입니다."]},{"slug":"bear-put-spread","title":"Bear Put Spread","category":"방향성 전략","bias":"bear","vol":"buy","risk":"defined","eventFit":"medium","cost":"medium","summary":"완만한 하락에 맞는 약세 기본 구조로, 손실은 제한되고 방향성은 선명합니다.","score":30,"reasons":[],"cautions":["현재 방향 해석과 반대편 구조입니다."]},{"slug":"bear-call-spread","title":"Bear Call Spread","category":"방향성 전략","bias":"bear","vol":"sell","risk":"defined","eventFit":"low","cost":"credit","summary":"상방이 제한될 것이라는 뷰에 맞는 크레딧형 약세 구조입니다.","score":22,"reasons":[],"cautions":["현재 방향 해석과 반대편 구조입니다.","이벤트 직전에는 해당 구조의 손익경로 리스크가 큽니다."]}]},"meta":{"generatedAt":"2026-06-11 18:00 KST","live":false,"notes":["파일럿 단계에서는 지수 레벨, 20일 실현변동성, 공개 헤드라인 신호를 결합해 전략을 점수화합니다.","증권사 리포트 View는 네이버 증권 운용전략 헤드라인 기준의 파일럿 구조이며, 접근 불가 시 준비된 샘플로 대체됩니다.","표시되는 KOSPI200 레벨은 현재 Playbook 전략 체계와 같은 기준으로 맞춰진 지수 레벨입니다.","실전 적용 전에는 옵션 이론가, 당일 이벤트, 포지션 한도를 별도로 재검토해야 합니다."]}};
+    const LIVE_MODE = false;
+    const REFRESH_MS = 15 * 60 * 1000;
+
+    function fmtPct(value) {
+      const sign = value > 0 ? "+" : "";
+      return sign + Number(value).toFixed(1) + "%";
+    }
+
+    function classFor(value) {
+      return value > 0 ? "positive" : value < 0 ? "negative" : "neutral";
+    }
+
+    function stateTone(label, value) {
+      if (label === "방향") {
+        if (value === "강세") return "state-bull";
+        if (value === "약세") return "state-bear";
+        return "state-neutral";
+      }
+      if (label === "변동성") {
+        if (value === "높음") return "state-vol-high";
+        if (value === "낮음") return "state-vol-low";
+        return "state-vol-mid";
+      }
+      if (label === "이벤트 리스크") {
+        return value === "높음" ? "state-risk-high" : "state-risk-mid";
+      }
+      if (label === "확신도") {
+        if (value === "높음") return "state-conviction-high";
+        if (value === "낮음") return "state-conviction-low";
+        return "state-conviction-mid";
+      }
+      return "";
+    }
+
+    function render(snapshot) {
+      document.getElementById("marketAsOf").textContent = '기준 ' + (snapshot.market.asOfTime || snapshot.market.asOfDate || snapshot.meta.generatedAt?.slice(0, 16) || '-');
+      const marketGrid = document.getElementById("marketGrid");
+      marketGrid.innerHTML = [
+        ["KOSPI200", Number(snapshot.market.spot).toFixed(2)],
+        ["1D", '<span class="' + classFor(snapshot.market.change1d) + '">' + fmtPct(snapshot.market.change1d) + '</span>'],
+        ["1W", '<span class="' + classFor(snapshot.market.change5d) + '">' + fmtPct(snapshot.market.change5d) + '</span>'],
+        ["20D RV", fmtPct(snapshot.market.realizedVol20)]
+      ].map(([k, v]) => '<div class="mini-card"><b>' + k + '</b><span>' + v + '</span></div>').join("");
+
+      document.getElementById("stateGrid").innerHTML = [
+        ["방향", snapshot.state.bias],
+        ["변동성", snapshot.state.volatility],
+        ["이벤트 리스크", snapshot.state.eventRisk],
+        ["확신도", snapshot.state.conviction]
+      ].map(([k, v]) => '<div class="badge-card ' + stateTone(k, v) + '"><b>' + k + '</b><span>' + v + '</span></div>').join("");
+
+      document.getElementById("headlineCommentary").innerHTML = '<div class="news-item commentary-tile"><b>공통 메시지</b>' + snapshot.headlineCommentary.map(text => '<div class="commentary-line">' + text + '</div>').join('') + '</div>';
+      document.getElementById("reportCommentary").innerHTML = '<div class="news-item commentary-tile"><b>공통 메시지</b>' + (snapshot.reportCommentary || []).map(text => '<div class="commentary-line">' + text + '</div>').join('') + '</div>';
+
+      const topStrategies = (snapshot.recommendations.top || []).length >= 9
+        ? (snapshot.recommendations.top || [])
+        : (snapshot.recommendations.top || []).concat(snapshot.recommendations.watchlist || [], (snapshot.recommendations.avoided || []).slice(0, 3));
+      const avoidStrategies = (snapshot.recommendations.avoided || []).length >= 6
+        ? (snapshot.recommendations.avoided || [])
+        : (snapshot.recommendations.avoided || []).concat(snapshot.recommendations.watchlist || []).slice(0, 6);
+
+      document.getElementById("strategyList").innerHTML = topStrategies.map((item, idx) => {
+        const reasons = item.reasons.map(text => '<li>' + text + '</li>').join("");
+        const cautions = item.cautions.length ? '<ul class="bullets">' + item.cautions.map(text => '<li>' + text + '</li>').join("") + '</ul>' : '';
+        return '<article class="strategy-card">' +
+          '<div class="strategy-head"><div><h4>' + (idx + 1) + '. ' + item.title + '</h4><div class="sub">' + item.category + ' | ' + item.slug + '</div></div><div class="score">' + item.score + '점</div></div>' +
+          '<p class="summary">' + item.summary + '</p>' +
+          '<ul class="bullets">' + reasons + '</ul>' +
+          cautions +
+          '<div class="cta-row"><a class="secondary" href="https://bitter-morning-77fd.jager001.workers.dev#strategy/' + item.slug + '" target="_blank" rel="noreferrer">Option Playbook 열기</a></div>' +
+        '</article>';
+      }).join("");
+
+      document.getElementById("rationaleList").innerHTML = '<div class="news-item commentary-tile"><b>핵심 해석</b>' + snapshot.state.rationale.map(text => '<div class="commentary-line">' + text + '</div>').join('') + '</div>';
+      document.getElementById("avoidList").innerHTML = avoidStrategies.map((item, idx) => {
+        const reasons = item.reasons.map(text => '<li>' + text + '</li>').join("");
+        const cautions = item.cautions.length ? '<ul class="bullets">' + item.cautions.map(text => '<li>' + text + '</li>').join("") + '</ul>' : '';
+        return '<article class="strategy-card">' +
+          '<div class="strategy-head"><div><h4>' + (idx + 1) + '. ' + item.title + '</h4><div class="sub">' + item.category + ' | ' + item.slug + '</div></div><div class="score">' + item.score + '점</div></div>' +
+          '<p class="summary">' + item.summary + '</p>' +
+          '<ul class="bullets">' + reasons + '</ul>' +
+          cautions +
+          '<div class="cta-row"><a class="secondary" href="https://bitter-morning-77fd.jager001.workers.dev#strategy/' + item.slug + '" target="_blank" rel="noreferrer">Option Playbook 열기</a></div>' +
+        '</article>';
+      }).join("");
+      document.getElementById("newsList").innerHTML = snapshot.headlines.map((item, idx) => '<div class="news-item"><b>' + (idx + 1) + '. ' + (item.url ? ('<a href="' + item.url + '" target="_blank" rel="noreferrer">' + item.title + '</a>') : item.title) + '</b><div class="sub">검색기준 ' + (item.date || '-') + (item.keywords ? (' · 키워드 ' + item.keywords.join(' · ')) : '') + '</div></div>').join("");
+      document.getElementById("reportList").innerHTML = (snapshot.reports || []).map((item, idx) => '<div class="news-item"><b>' + (idx + 1) + '. ' + (item.url ? ('<a href="' + item.url + '" target="_blank" rel="noreferrer">' + item.title + '</a>') : item.title) + '</b><div class="sub"><span class="source-tag">' + (item.source || '리포트 검색') + '</span>검색기준 ' + (item.date || '-') + (item.keywords ? (' · 키워드 ' + item.keywords.join(' · ')) : '') + '</div></div>').join("");
+
+      document.getElementById("opsNotes").innerHTML = snapshot.meta.notes.map(text => '<div class="news-item"><b>운영 노트</b><div>' + text + '</div></div>').join("");
+    }
+
+    async function refreshLive() {
+      if (!LIVE_MODE) return;
+      try {
+        const response = await fetch('/api/advisor?ts=' + Date.now(), { cache: 'no-store', headers: { accept: 'application/json', 'cache-control': 'no-cache' } });
+        if (!response.ok) throw new Error('live fetch failed');
+        const data = await response.json();
+        render(data);
+      } catch (error) {
+        render(BOOTSTRAP);
+      }
+    }
+
+    document.getElementById("refreshButton").addEventListener("click", refreshLive);
+    render(BOOTSTRAP);
+    if (LIVE_MODE) {
+      refreshLive();
+      setInterval(refreshLive, REFRESH_MS);
+    }
+  </script>
+</body>
+</html>

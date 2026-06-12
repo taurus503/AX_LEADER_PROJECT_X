@@ -1,8 +1,8 @@
 # Option Playbook Advisor
 
 Public deployment:
-- [Vercel Public Deployment](https://axleaderprojectx.vercel.app/)
-- [Direct Advisor Page](https://axleaderprojectx.vercel.app/Option_Playbook_Advisor_backup_2026-06-12_v5.6/Option_Playbook_Advisor_ver5.6.html)
+- [Vercel Public Deployment](https://axleaderprojectxtaurus503.vercel.app/)
+- [Direct Advisor Page](https://axleaderprojectxtaurus503.vercel.app/Option_Playbook_Advisor_backup_2026-06-12_v5.6/Option_Playbook_Advisor_ver5.6.html)
 
 What this deploy folder does:
 - `worker.mjs`: full live market/news recommendation worker

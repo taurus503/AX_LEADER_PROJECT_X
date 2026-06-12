@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Option Playbook Advisor ver 5.6</title>
+  <title>Option Playbook Advisor ver 5.7</title>
   <style>
     :root {
       --bg: #050806;
@@ -68,7 +68,7 @@
     .positive { color: var(--green); }
     .negative { color: var(--red); }
     .neutral { color: var(--orange); }
-    .strategies { display: grid; gap: 16px; }
+    .strategies { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
     .strategy-card { padding: 20px; background: var(--card); color: var(--ink); min-height: 320px; }
     .strategy-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
     .strategy-head h4 { margin: 0; font-size: 29px; line-height: 1.02; font-weight: 950; }
@@ -117,7 +117,7 @@
           <button class="secondary update-button" id="refreshButton" type="button">데이터 업데이트</button>
         </div>
         <h1>Option Playbook Advisor</h1>
-        <p>현재 KOSPI200 레벨, 추정 변동성, 공개 뉴스 헤드라인과 예정 이벤트를 결합해 오늘 가장 적합한 옵션 합성전략을 3개 우선순위로 제안합니다.</p>
+        <p>현재 KOSPI200 레벨, 추정 변동성, 공개 뉴스 헤드라인과 예정 이벤트를 결합해 오늘 가장 적합한 옵션 합성전략 9개와 피해야 할 전략 6개를 함께 비교합니다.</p>
       </div>
       <aside class="hero-warning">
         <span class="warning-title">Important</span>
@@ -151,7 +151,7 @@
 
     <section class="grid">
       <section class="panel theme-dark">
-        <h2>추천 전략 TOP 3</h2>
+        <h2>상위 추천 전략 TOP 9</h2>
         <div class="strategies" id="strategyList"></div>
       </section>
 
@@ -159,11 +159,8 @@
         <h2>시장 해석</h2>
         <div class="rationale-list" id="rationaleList"></div>
         <div style="height:18px"></div>
-        <h3>Watchlist</h3>
-        <div class="watch-grid" id="watchList"></div>
-        <div style="height:18px"></div>
-        <h3>Avoid Now</h3>
-        <div class="watch-grid" id="avoidList"></div>
+        <h3>Avoid Now 6</h3>
+        <div class="strategies" id="avoidList"></div>
       </section>
     </section>
 
@@ -234,7 +231,14 @@
       document.getElementById("headlineCommentary").innerHTML = '<div class="news-item commentary-tile"><b>공통 메시지</b>' + snapshot.headlineCommentary.map(text => '<div class="commentary-line">' + text + '</div>').join('') + '</div>';
       document.getElementById("reportCommentary").innerHTML = '<div class="news-item commentary-tile"><b>공통 메시지</b>' + (snapshot.reportCommentary || []).map(text => '<div class="commentary-line">' + text + '</div>').join('') + '</div>';
 
-      document.getElementById("strategyList").innerHTML = snapshot.recommendations.top.map((item, idx) => {
+      const topStrategies = (snapshot.recommendations.top || []).length >= 9
+        ? (snapshot.recommendations.top || [])
+        : (snapshot.recommendations.top || []).concat(snapshot.recommendations.watchlist || [], (snapshot.recommendations.avoided || []).slice(0, 3));
+      const avoidStrategies = (snapshot.recommendations.avoided || []).length >= 6
+        ? (snapshot.recommendations.avoided || [])
+        : (snapshot.recommendations.avoided || []).concat(snapshot.recommendations.watchlist || []).slice(0, 6);
+
+      document.getElementById("strategyList").innerHTML = topStrategies.map((item, idx) => {
         const reasons = item.reasons.map(text => '<li>' + text + '</li>').join("");
         const cautions = item.cautions.length ? '<ul class="bullets">' + item.cautions.map(text => '<li>' + text + '</li>').join("") + '</ul>' : '';
         return '<article class="strategy-card">' +
@@ -242,13 +246,22 @@
           '<p class="summary">' + item.summary + '</p>' +
           '<ul class="bullets">' + reasons + '</ul>' +
           cautions +
-          '<div class="cta-row"><a class="secondary" href="https://bitter-morning-77fd.jager001.workers.dev#strategy/' + item.slug + '" target="_blank" rel="noreferrer">전략 상세 보기</a></div>' +
+          '<div class="cta-row"><a class="secondary" href="https://bitter-morning-77fd.jager001.workers.dev#strategy/' + item.slug + '" target="_blank" rel="noreferrer">Option Playbook 열기</a></div>' +
         '</article>';
       }).join("");
 
       document.getElementById("rationaleList").innerHTML = '<div class="news-item commentary-tile"><b>핵심 해석</b>' + snapshot.state.rationale.map(text => '<div class="commentary-line">' + text + '</div>').join('') + '</div>';
-      document.getElementById("watchList").innerHTML = snapshot.recommendations.watchlist.map(item => '<div class="news-item"><b>' + item.title + '</b><div>' + item.summary + '</div></div>').join("");
-      document.getElementById("avoidList").innerHTML = snapshot.recommendations.avoided.map(item => '<div class="news-item"><b>' + item.title + '</b><div>' + (item.cautions[0] || item.summary) + '</div></div>').join("");
+      document.getElementById("avoidList").innerHTML = avoidStrategies.map((item, idx) => {
+        const reasons = item.reasons.map(text => '<li>' + text + '</li>').join("");
+        const cautions = item.cautions.length ? '<ul class="bullets">' + item.cautions.map(text => '<li>' + text + '</li>').join("") + '</ul>' : '';
+        return '<article class="strategy-card">' +
+          '<div class="strategy-head"><div><h4>' + (idx + 1) + '. ' + item.title + '</h4><div class="sub">' + item.category + ' | ' + item.slug + '</div></div><div class="score">' + item.score + '점</div></div>' +
+          '<p class="summary">' + item.summary + '</p>' +
+          '<ul class="bullets">' + reasons + '</ul>' +
+          cautions +
+          '<div class="cta-row"><a class="secondary" href="https://bitter-morning-77fd.jager001.workers.dev#strategy/' + item.slug + '" target="_blank" rel="noreferrer">Option Playbook 열기</a></div>' +
+        '</article>';
+      }).join("");
       document.getElementById("newsList").innerHTML = snapshot.headlines.map((item, idx) => '<div class="news-item"><b>' + (idx + 1) + '. ' + (item.url ? ('<a href="' + item.url + '" target="_blank" rel="noreferrer">' + item.title + '</a>') : item.title) + '</b><div class="sub">검색기준 ' + (item.date || '-') + (item.keywords ? (' · 키워드 ' + item.keywords.join(' · ')) : '') + '</div></div>').join("");
       document.getElementById("reportList").innerHTML = (snapshot.reports || []).map((item, idx) => '<div class="news-item"><b>' + (idx + 1) + '. ' + (item.url ? ('<a href="' + item.url + '" target="_blank" rel="noreferrer">' + item.title + '</a>') : item.title) + '</b><div class="sub"><span class="source-tag">' + (item.source || '리포트 검색') + '</span>검색기준 ' + (item.date || '-') + (item.keywords ? (' · 키워드 ' + item.keywords.join(' · ')) : '') + '</div></div>').join("");
 

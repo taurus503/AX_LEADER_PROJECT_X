@@ -7,6 +7,15 @@
 
 ---
 
+## 추가 프로젝트 안내
+
+- [investment-compliance-site](./investment-compliance-site)
+  - 펀드 투자 규제 검토를 위한 내부용 웹 도구
+  - 투자자 관점 검토, 공식 법령 근거 표시, 이사회/공시 필요 여부 요약 제공
+  - 상세 설명: [README](./investment-compliance-site/README.md)
+
+---
+
 ## 1. 추진 배경
 
 투자 의사결정 과정은 시장분석, 전략선정, 성과예측, 사후평가 등 다양한 검토 절차가 필요하다.

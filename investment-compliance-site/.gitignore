@@ -1,0 +1,28 @@
+.vercel/
+.env
+*.log
+
+# Preview and scratch artifacts
+*_preview*.png
+external_data_preview*.png
+investment_compliance_site_demo.png
+investment_compliance_site_screenshot.png
+investment_compliance_skill_report.png
+mobile_check*.png
+mobile_local_fixed.png
+mobile_remote_fixed.png
+decision_*.png
+board_*.png
+checkpoint_*.png
+disclosure_*.png
+practical_checkpoints_*.png
+risk_*.png
+top3_risk_sorted_actions.png
+
+# Unrelated local working files
+samsung_life_shareholder_summary.docx
+samsung_life_shareholder_summary.pdf
+build_samsung_life_shareholder_doc.py
+build_samsung_life_shareholder_pdf.py
+build_investment_compliance_report.ps1
+docx_render_check/

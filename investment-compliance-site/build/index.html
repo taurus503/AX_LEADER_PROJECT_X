@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Investment Compliance Review</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 44 44" role="img">
+            <path d="M22 3 38 10v12c0 10.5-6.5 16.6-16 19-9.5-2.4-16-8.5-16-19V10L22 3Z" />
+            <path d="M14 23.5 19.2 29 31 16.8" />
+          </svg>
+        </div>
+        <div>
+          <h1>펀드 투자 규제 검토</h1>
+          <p>Investment Compliance</p>
+        </div>
+      </div>
+      <div class="top-actions" aria-label="검토 원칙">
+        <span>투자자 관점</span>
+        <span>원문 근거 우선</span>
+        <span>추측 금지</span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="input-panel" aria-labelledby="input-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Input</p>
+            <h2 id="input-title">판단에 필요한 정보</h2>
+          </div>
+          <button class="icon-button" id="loadExample" type="button" title="예시 입력 채우기" aria-label="예시 입력 채우기">
+            <span aria-hidden="true">예</span>
+          </button>
+        </div>
+
+        <form id="reviewForm">
+          <div class="field">
+            <label for="fundType">펀드 유형</label>
+            <select id="fundType" name="fundType">
+              <option value="">선택</option>
+              <option value="public">공모펀드</option>
+              <option value="general-private">일반 사모펀드</option>
+              <option value="institutional-private">기관전용 사모펀드</option>
+              <option value="etf">ETF</option>
+              <option value="foreign">역외펀드</option>
+            </select>
+          </div>
+
+          <fieldset class="asset-selector">
+            <legend>투자대상 및 비중</legend>
+            <div class="asset-row">
+              <label><input class="asset-check" type="checkbox" name="assetTargets" value="domestic-stock" /> 국내주식</label>
+              <div class="input-unit compact">
+                <input name="alloc_domestic_stock" type="number" min="0" max="100" step="0.1" placeholder="0" disabled />
+                <span>%</span>
+              </div>
+            </div>
+            <div class="asset-row">
+              <label><input class="asset-check" type="checkbox" name="assetTargets" value="foreign-stock" /> 해외주식</label>
+              <div class="input-unit compact">
+                <input name="alloc_foreign_stock" type="number" min="0" max="100" step="0.1" placeholder="0" disabled />
+                <span>%</span>
+              </div>
+            </div>
+            <div class="asset-row">
+              <label><input class="asset-check" type="checkbox" name="assetTargets" value="domestic-bond" /> 국내채권</label>
+              <div class="input-unit compact">
+                <input name="alloc_domestic_bond" type="number" min="0" max="100" step="0.1" placeholder="0" disabled />
+                <span>%</span>
+              </div>
+            </div>
+            <div class="asset-row">
+              <label><input class="asset-check" type="checkbox" name="assetTargets" value="foreign-bond" /> 해외채권</label>
+              <div class="input-unit compact">
+                <input name="alloc_foreign_bond" type="number" min="0" max="100" step="0.1" placeholder="0" disabled />
+                <span>%</span>
+              </div>
+            </div>
+            <div class="asset-row">
+              <label><input class="asset-check" type="checkbox" name="assetTargets" value="real-estate" /> 부동산/PF</label>
+              <div class="input-unit compact">
+                <input name="alloc_real_estate" type="number" min="0" max="100" step="0.1" placeholder="0" disabled />
+                <span>%</span>
+              </div>
+            </div>
+            <div class="asset-row">
+              <label><input class="asset-check" type="checkbox" name="assetTargets" value="loan" /> 대출</label>
+              <div class="input-unit compact">
+                <input name="alloc_loan" type="number" min="0" max="100" step="0.1" placeholder="0" disabled />
+                <span>%</span>
+              </div>
+            </div>
+            <div class="asset-row">
+              <label><input class="asset-check" type="checkbox" name="assetTargets" value="derivatives" /> 파생상품</label>
+              <div class="input-unit compact">
+                <input name="alloc_derivatives" type="number" min="0" max="100" step="0.1" placeholder="0" disabled />
+                <span>%</span>
+              </div>
+            </div>
+            <div class="asset-row">
+              <label><input class="asset-check" type="checkbox" name="assetTargets" value="crypto" /> 가상자산</label>
+              <div class="input-unit compact">
+                <input name="alloc_crypto" type="number" min="0" max="100" step="0.1" placeholder="0" disabled />
+                <span>%</span>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="hedgePolicy">환헤지</label>
+              <select id="hedgePolicy" name="hedgePolicy">
+                <option value="">선택</option>
+                <option value="hedged">헤지 있음</option>
+                <option value="unhedged">헤지 없음</option>
+                <option value="partial">부분 헤지</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="leveragePolicy">레버리지</label>
+              <select id="leveragePolicy" name="leveragePolicy">
+                <option value="">선택</option>
+                <option value="none">없음</option>
+                <option value="used">있음</option>
+                <option value="unknown">미확정</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="lifeRatio">삼성생명 투자 비중</label>
+              <div class="input-unit">
+                <input id="lifeRatio" name="lifeRatio" type="number" min="0" max="100" step="0.1" placeholder="45" />
+                <span>%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="affiliateRatio">계열 금융회사 합산 비중</label>
+              <div class="input-unit">
+                <input id="affiliateRatio" name="affiliateRatio" type="number" min="0" max="100" step="0.1" placeholder="95" />
+                <span>%</span>
+              </div>
+            </div>
+          </div>
+
+          <fieldset class="checks">
+            <legend>주요 특성</legend>
+            <label><input type="checkbox" name="features" value="affiliate-manager" /> 계열 운용사</label>
+            <label><input type="checkbox" name="features" value="affiliate-investor" /> 계열 공동투자자</label>
+            <label><input type="checkbox" name="features" value="affiliate-seller" /> 계열 판매사/중개사</label>
+            <label><input type="checkbox" name="features" value="major-shareholder" /> 대주주 거래 가능성</label>
+          </fieldset>
+
+          <button class="primary-action" id="submitButton" type="submit">검토 초안 생성</button>
+        </form>
+      </section>
+
+      <section class="result-panel" aria-live="polite" aria-labelledby="result-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Output</p>
+            <h2 id="result-title">투자자 관점 검토 결과</h2>
+          </div>
+          <button class="icon-button" id="clearResult" type="button" title="결과 초기화" aria-label="결과 초기화">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+          <div class="empty-visual" aria-hidden="true">
+            <svg viewBox="0 0 160 100">
+              <rect x="18" y="18" width="124" height="68" rx="10" />
+              <path d="M42 39h50M42 55h76M42 71h38" />
+              <circle cx="118" cy="38" r="9" />
+            </svg>
+          </div>
+          <p>입력값을 채우면 투자자 관점 검토 초안과 법조문 근거가 표시됩니다.</p>
+        </div>
+
+        <div id="loadingState" class="loading-state hidden">
+          <div class="spinner" aria-hidden="true"></div>
+          <p>공식 근거를 불러오는 중입니다.</p>
+        </div>
+
+        <div id="errorState" class="error-state hidden">
+          <strong>검토 결과를 가져오지 못했습니다.</strong>
+          <p id="errorMessage">잠시 후 다시 시도해 주세요.</p>
+        </div>
+
+        <div id="reviewResult" class="review-result hidden">
+          <div class="decision-strip" id="decisionStrip">
+            <div>
+              <span id="decisionBadge" class="decision-badge">투자유의</span>
+              <h3 id="decisionTitle">검토 필요</h3>
+            </div>
+            <div class="decision-impact" id="decisionImpact" aria-label="주요 영향 요약"></div>
+          </div>
+
+          <div class="source-strip" id="sourceStrip">
+            <span id="sourceMode">공식 근거 연동 대기</span>
+            <span id="sourceTimestamp">-</span>
+          </div>
+
+          <div class="status-row">
+            <div>
+              <span class="status-label">실무 체크포인트</span>
+              <strong id="statusRisk">-</strong>
+            </div>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="검토 결과 탭">
+            <button class="tab active" type="button" data-tab="actions">실무 체크</button>
+            <button class="tab" type="button" data-tab="laws">관련 법조문</button>
+            <button class="tab" type="button" data-tab="disclosure">공시·보고</button>
+            <button class="tab" type="button" data-tab="missing">확인 필요</button>
+          </div>
+
+          <div class="tab-panel active" id="actions">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>항목</th>
+                    <th>상태</th>
+                    <th>관련 법조문</th>
+                    <th>투자자 확인사항</th>
+                  </tr>
+                </thead>
+                <tbody id="actionRows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="laws">
+            <div id="lawCards" class="law-grid"></div>
+          </div>
+
+          <div class="tab-panel" id="disclosure">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>공시/보고</th>
+                    <th>필요 여부</th>
+                    <th>원문 근거</th>
+                    <th>트리거</th>
+                    <th>공시/보고처</th>
+                  </tr>
+                </thead>
+                <tbody id="disclosureRows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="missing">
+            <ul id="missingList" class="missing-list"></ul>
+            <div class="caveat" id="caveatText">
+              본 검토는 투자자 관점의 초안이며, 최종 투자 판단과 법률 해석은 사람의 확인이 필요합니다.
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

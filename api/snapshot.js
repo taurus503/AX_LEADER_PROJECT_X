@@ -137,7 +137,7 @@ function scaleToScore(value, baseline, spread) {
   return Math.max(-100, Math.min(100, ((value - baseline) / spread) * 100));
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
     res.status(405).json({ error: "Method not allowed" });
@@ -197,4 +197,4 @@ module.exports = async function handler(req, res) {
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
-};
+}

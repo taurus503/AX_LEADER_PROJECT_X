@@ -1,0 +1,9 @@
+node_modules/
+option-playbook-live/node_modules/
+option-playbook-live/dist/
+option-playbook-live/.wrangler/
+option-playbook-live/.openai/
+option-playbook-live/.next/
+option-playbook-live/.turbo/
+option-playbook-live/.pnpm-store/
+*.log

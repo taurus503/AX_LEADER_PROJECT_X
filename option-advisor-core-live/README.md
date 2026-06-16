@@ -20,6 +20,9 @@ npm install
 npm run dev
 ```
 
+Open the app at `http://localhost:3000/option-advisor-core-live`.
+The root `/` path is not the app entry for this folder anymore.
+
 ## Output shape
 
 The dashboard keeps the same high-density layout as the backup

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ADVISOR_BASE_PATH } from "@/lib/paths";
 import type { AdvisorSnapshot, ScoredStrategy, ThemeItem } from "@/lib/oae";
 import type { RegimeKey } from "@/lib/market";
 
@@ -70,10 +71,13 @@ function useAdvisorSnapshot(selectedDate: string, refreshToken: number) {
       setError(null);
 
       try {
-        const response = await fetch(`/api/advisor?date=${encodeURIComponent(selectedDate)}`, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `${ADVISOR_BASE_PATH}/api/advisor?date=${encodeURIComponent(selectedDate)}`,
+          {
+            signal: controller.signal,
+            cache: "no-store",
+          },
+        );
         const payload = (await response.json()) as AdvisorSnapshot | { error?: string };
 
         if (!response.ok) {
@@ -278,7 +282,10 @@ export default function Home() {
             <button type="button" onClick={() => setRefreshToken((value) => value + 1)}>
               코어 재실행
             </button>
-            <div className="control-hint">Codex 2의 market view가 있으면 /api/advisor 쿼리로 그대로 주입할 수 있습니다.</div>
+            <div className="control-hint">
+              Codex 2의 market view가 있으면 {ADVISOR_BASE_PATH}/api/advisor 쿼리로 그대로 주입할 수
+              있습니다.
+            </div>
           </div>
         </section>
 
@@ -466,8 +473,9 @@ export default function Home() {
             <div>
               <strong>Codex 2 handshake</strong>
               <p>
-                이후에는 <code>/api/advisor</code>에 regime, volScore, skewScore, confidence를 쿼리로 주입해
-                Regime & Market View 에이전트가 만든 결과를 그대로 넘길 수 있습니다.
+                이후에는 <code>{ADVISOR_BASE_PATH}/api/advisor</code>에 regime, volScore, skewScore,
+                confidence를 쿼리로 주입해 Regime &amp; Market View 에이전트가 만든 결과를 그대로 넘길 수
+                있습니다.
               </p>
             </div>
             <div>

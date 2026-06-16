@@ -14,6 +14,7 @@ The separate Codex 1 implementation lives in [`option-advisor-core-live/`](./opt
 - The root `index.html` redirects to the dashboard folder
 - The market snapshot API lives at `option-playbook-live/app/api/snapshot/route.ts`
 - The Codex 1 advisor implementation is mirrored in `option-advisor-core-live/app/api/advisor/route.ts`
+- The Codex 1 deployment path is `/option-advisor-core-live` in the separate folder build
 
 ## Local Run
 

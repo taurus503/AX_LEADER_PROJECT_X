@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market Regime Intelligence Agent</title>
+  <style>
+    :root {
+      --bg: #eeeeee;
+      --panel: #ffffff;
+      --panel-soft: #f6f6f6;
+      --ink: #111111;
+      --muted: #4d4d4d;
+      --line: #111111;
+      --blue: #174ee8;
+      --green: #006d6f;
+      --red: #d71920;
+      --amber: #f2b705;
+      --violet: #5b2ecc;
+      --cream: #fff4cf;
+      --shadow: none;
+      --radius: 0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: "Malgun Gothic", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px clamp(16px, 3vw, 34px);
+      background: var(--panel);
+      color: #fff;
+      border-bottom: 3px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 0;
+      background: var(--blue);
+      font-weight: 900;
+    }
+
+    .brand h1 {
+      color: var(--ink);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 0;
+      background: var(--cream);
+      color: var(--ink);
+      border: 2px solid var(--line);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(270px, 320px) minmax(0, 1fr) minmax(300px, 380px);
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .column {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 48px;
+      padding: 12px 14px;
+      background: var(--cream);
+      border-bottom: 2px solid var(--line);
+    }
+
+    .panel h2,
+    .panel h3 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    .panel-body {
+      padding: 14px;
+    }
+
+    .scenario-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .scenario-tabs button,
+    .run-button,
+    .copy-button {
+      min-height: 40px;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .scenario-tabs button.active {
+      color: #fff;
+      background: var(--blue);
+      border-color: var(--line);
+    }
+
+    .run-button,
+    .copy-button {
+      width: 100%;
+      color: #fff;
+      background: var(--ink);
+      border-color: var(--line);
+    }
+
+    .copy-button {
+      margin-top: 10px;
+      background: var(--blue);
+      border-color: var(--line);
+    }
+
+    .data-status {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 800;
+    }
+
+    .data-status.error {
+      color: var(--red);
+    }
+
+    .date-tool {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 2px solid var(--line);
+    }
+
+    .date-tool-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .date-field {
+      display: grid;
+      gap: 6px;
+      flex: 1 1 170px;
+    }
+
+    .date-field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .date-field input {
+      width: 100%;
+      min-height: 38px;
+      padding: 0 10px;
+      color: var(--ink);
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .market-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .market-cell {
+      min-height: 92px;
+      padding: 12px;
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .market-cell span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .market-cell strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    body.custom-mode .field-grid {
+      outline: 3px solid var(--blue);
+      outline-offset: 4px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      min-height: 38px;
+      padding: 0 10px;
+      color: var(--ink);
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .field input:focus,
+    .field select:focus {
+      outline: 3px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 14px 0;
+      padding: 10px;
+      background: var(--panel-soft);
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .toggle-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--blue);
+    }
+
+    .regime-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      min-height: 150px;
+      padding: 18px;
+      background: #ffffff;
+      border: 3px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .regime-name {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 54px);
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .regime-tone {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .confidence-ring {
+      width: 132px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: conic-gradient(var(--blue) var(--confidence), #ffffff 0);
+      border: 2px solid var(--line);
+    }
+
+    .confidence-ring span {
+      width: 92px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #fff;
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .kpi {
+      min-height: 92px;
+      padding: 12px;
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .kpi span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .kpi strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .list li {
+      padding: 12px;
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .confidence-list li {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .impact-dot {
+      min-width: 42px;
+      min-height: 24px;
+      display: inline-grid;
+      place-items: center;
+      padding: 0 8px;
+      border-radius: 0;
+      color: #fff;
+      background: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      border: 2px solid var(--line);
+    }
+
+    .impact-dot.plus { background: var(--green); }
+    .impact-dot.minus { background: var(--red); }
+    .impact-dot.neutral {
+      background: var(--amber);
+      color: var(--ink);
+    }
+
+    .confidence-reason-title {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 900;
+    }
+
+    .confidence-summary {
+      margin: 0 0 12px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .keyword-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .keyword-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 9px;
+      border-radius: 0;
+      border: 2px solid var(--line);
+      background: var(--cream);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .news-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .news-item {
+      padding: 12px;
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .news-item a {
+      color: var(--ink);
+      font-weight: 900;
+      text-decoration: none;
+      line-height: 1.45;
+    }
+
+    .news-meta {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .question-box {
+      display: grid;
+      gap: 10px;
+    }
+
+    .question-box textarea {
+      width: 100%;
+      min-height: 82px;
+      resize: vertical;
+      padding: 10px;
+      color: var(--ink);
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      line-height: 1.5;
+      font-weight: 800;
+    }
+
+    .question-box textarea:focus {
+      outline: 3px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .quick-questions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .quick-questions button {
+      min-height: 30px;
+      padding: 0 10px;
+      color: var(--ink);
+      background: var(--cream);
+      border: 2px solid var(--line);
+      border-radius: 0;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .quick-questions button:hover {
+      color: #fff;
+      background: var(--green);
+    }
+
+    .answer-box {
+      min-height: 120px;
+      padding: 12px;
+      color: var(--ink);
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      white-space: pre-line;
+      line-height: 1.6;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .split-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 0;
+      color: #fff;
+      background: var(--blue);
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+      border: 2px solid var(--line);
+    }
+
+    .tag.green { background: var(--green); }
+    .tag.red { background: var(--red); }
+    .tag.amber { background: var(--amber); }
+    .tag.violet { background: var(--violet); }
+
+    .bars {
+      display: grid;
+      gap: 12px;
+    }
+
+    .bar-row {
+      display: grid;
+      gap: 6px;
+    }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .bar-track {
+      height: 12px;
+      overflow: hidden;
+      background: #ffffff;
+      border: 2px solid var(--line);
+      border-radius: 0;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: var(--width);
+      background: var(--blue);
+    }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: 74px repeat(3, minmax(44px, 1fr));
+      gap: 6px;
+      align-items: stretch;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .matrix div {
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      padding: 6px;
+      background: #ffffff;
+      border: 2px solid var(--line);
+      border-radius: 0;
+      text-align: center;
+    }
+
+    .matrix .head {
+      background: var(--cream);
+      color: var(--ink);
+    }
+
+    .report-box {
+      min-height: 190px;
+      padding: 14px;
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--ink);
+      line-height: 1.65;
+      white-space: pre-line;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .manual-copy {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: var(--cream);
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .manual-copy p {
+      margin: 0 0 8px;
+      color: #6f4a08;
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 800;
+    }
+
+    .manual-copy textarea {
+      width: 100%;
+      min-height: 130px;
+      resize: vertical;
+      padding: 10px;
+      color: var(--ink);
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .json-box {
+      max-height: 320px;
+      overflow: auto;
+      margin: 0;
+      padding: 14px;
+      background: #111111;
+      color: #ffffff;
+      border-radius: var(--radius);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 1160px) {
+      .workspace {
+        grid-template-columns: 310px minmax(0, 1fr);
+      }
+
+      .column:last-child {
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .workspace,
+      .column:last-child,
+      .split-list,
+      .kpi-grid,
+      .market-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .regime-card {
+        grid-template-columns: 1fr;
+      }
+
+      .confidence-ring {
+        width: 112px;
+      }
+
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">RI</div>
+        <h1>Market Regime Intelligence Agent</h1>
+      </div>
+      <div class="meta-row">
+        <span class="pill">KOSPI200</span>
+        <span class="pill">W=30</span>
+        <span class="pill">NATIS Demo</span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="column">
+        <section class="panel">
+          <header>
+            <h2>시나리오</h2>
+            <span class="tag">Preset</span>
+          </header>
+          <div class="panel-body">
+            <div class="scenario-tabs" id="scenario-tabs">
+              <button type="button" data-scenario="bullCalm">Bull/Calm</button>
+              <button type="button" data-scenario="bearCrisis">Bear/Crisis</button>
+              <button type="button" data-scenario="transition">Transition</button>
+              <button type="button" data-scenario="custom">Custom</button>
+            </div>
+            <button class="copy-button" id="live-data-button" type="button">실제 KOSPI200 데이터 불러오기</button>
+            <p class="data-status" id="data-status">현재는 데모 시나리오 데이터입니다.</p>
+            <div class="date-tool" aria-label="Market date controls">
+              <div class="date-tool-row">
+                <div class="date-field">
+                  <label for="market-date-input">기준일</label>
+                  <input id="market-date-input" type="date">
+                </div>
+                <button class="copy-button" id="manual-update-button" type="button">업데이트</button>
+              </div>
+              <button class="copy-button" id="reset-date-button" type="button">직전 영업일</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>입력 데이터</h2>
+            <span class="tag green">State</span>
+          </header>
+          <div class="panel-body">
+            <div class="field-grid">
+              <div class="field">
+                <label for="oneDay">1일 수익률(%)</label>
+                <input id="oneDay" type="number" step="0.1">
+              </div>
+              <div class="field">
+                <label for="oneWeek">1주 수익률(%)</label>
+                <input id="oneWeek" type="number" step="0.1">
+              </div>
+              <div class="field">
+                <label for="oneMonth">1개월 수익률(%)</label>
+                <input id="oneMonth" type="number" step="0.1">
+              </div>
+              <div class="field">
+                <label for="volatility20d">20일 변동성(%)</label>
+                <input id="volatility20d" type="number" step="0.1">
+              </div>
+              <div class="field">
+                <label for="trendStrength">추세 강도</label>
+                <input id="trendStrength" type="number" min="0" max="100" step="1">
+              </div>
+              <div class="field">
+                <label for="eventRisk">이벤트 리스크</label>
+                <select id="eventRisk">
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high">high</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="newsSentiment">뉴스 심리</label>
+                <select id="newsSentiment">
+                  <option value="positive">positive</option>
+                  <option value="mixed">mixed</option>
+                  <option value="neutral">neutral</option>
+                  <option value="negative">negative</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="breadth">Breadth</label>
+                <select id="breadth">
+                  <option value="strong">strong</option>
+                  <option value="neutral">neutral</option>
+                  <option value="weak">weak</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="slem">SLEM</label>
+                <input id="slem" type="number" min="0" max="1" step="0.01">
+              </div>
+              <div class="field">
+                <label for="gelmanRubin">Gelman-Rubin</label>
+                <input id="gelmanRubin" type="number" min="1" step="0.01">
+              </div>
+            </div>
+            <label class="toggle-row" for="tradabilityMaskValid">
+              <span>Tradability Mask 유효</span>
+              <input id="tradabilityMaskValid" type="checkbox">
+            </label>
+            <button class="run-button" id="run-button" type="button">Agent 실행</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="column">
+        <section class="regime-card" aria-live="polite">
+          <div>
+            <p class="regime-name" id="regime-name">Transition</p>
+            <p class="regime-tone" id="regime-tone">방향 불명확, 이벤트 민감도 확대</p>
+          </div>
+          <div class="confidence-ring" id="confidence-ring">
+            <span id="confidence-value">0%</span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>시장 기준값</h2>
+            <span class="tag violet">Date / Price</span>
+          </header>
+          <div class="panel-body">
+            <div class="market-strip">
+              <div class="market-cell">
+                <span>기준일</span>
+                <strong id="market-as-of">-</strong>
+              </div>
+              <div class="market-cell">
+                <span>KOSPI200 종가</span>
+                <strong id="market-close">-</strong>
+              </div>
+              <div class="market-cell">
+                <span>전일 종가</span>
+                <strong id="market-prev-close">-</strong>
+              </div>
+              <div class="market-cell">
+                <span>증감율</span>
+                <strong id="market-change-rate">-</strong>
+              </div>
+              <div class="market-cell">
+                <span>역사적 변동성</span>
+                <strong id="market-historical-vol">-</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="kpi-grid" aria-label="Market indicators">
+          <div class="kpi">
+            <span>1개월</span>
+            <strong id="kpi-month">0.0%</strong>
+          </div>
+          <div class="kpi">
+            <span>20일 변동성</span>
+            <strong id="kpi-vol">0.0%</strong>
+          </div>
+          <div class="kpi">
+            <span>이벤트</span>
+            <strong id="kpi-event">low</strong>
+          </div>
+          <div class="kpi">
+            <span>재학습</span>
+            <strong id="kpi-retrain">N</strong>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>확신도 판단 근거</h2>
+            <span class="tag" id="confidence-label">Score</span>
+          </header>
+          <div class="panel-body">
+            <p class="confidence-summary" id="confidence-summary"></p>
+            <ul class="list confidence-list" id="confidence-list"></ul>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>국면 판단 근거</h2>
+            <span class="tag amber">Evidence</span>
+          </header>
+          <div class="panel-body">
+            <ul class="list" id="evidence-list"></ul>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>뉴스/리포트 Top3</h2>
+            <span class="tag violet" id="news-sentiment-tag">News</span>
+          </header>
+          <div class="panel-body">
+            <button class="copy-button" id="news-button" type="button">최근 뉴스/리포트 불러오기</button>
+            <p class="data-status" id="news-status">최근 뉴스/리포트가 아직 연결되지 않았습니다.</p>
+            <div class="keyword-row" id="news-keywords"></div>
+            <div class="news-list" id="news-list"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>Option Playbook Advisor 연계</h2>
+            <span class="tag violet">Top / Avoid</span>
+          </header>
+          <div class="panel-body split-list">
+            <div>
+              <h3>Top 검토 후보</h3>
+              <ul class="list" id="top-list"></ul>
+            </div>
+            <div>
+              <h3>Avoid 검토 후보</h3>
+              <ul class="list" id="avoid-list"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>Risk-Adjusted Allocation Weights</h2>
+            <span class="tag green" id="constraint-tag">Sum 1.00</span>
+          </header>
+          <div class="panel-body">
+            <div class="bars" id="allocation-bars"></div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="column">
+        <section class="panel">
+          <header>
+            <h2>투자위원회 보고서 초안</h2>
+            <span class="tag red">Draft</span>
+          </header>
+          <div class="panel-body">
+            <div class="report-box" id="report-box"></div>
+            <div class="manual-copy" id="manual-copy-panel">
+              <p>브라우저 권한 때문에 자동 복사가 막혔습니다. 아래 문안이 선택되어 있으니 Ctrl+C로 복사해 주세요.</p>
+              <textarea id="manual-copy-text" readonly></textarea>
+            </div>
+            <button class="copy-button" id="copy-button" type="button">보고서 문안 복사</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>초보자 질문</h2>
+            <span class="tag green">Q&A</span>
+          </header>
+          <div class="panel-body question-box">
+            <textarea id="beginner-question" placeholder="예: Transition이 뭐야? / 왜 확신도가 낮아? / 오늘 조심할 점은?"></textarea>
+            <div class="quick-questions">
+              <button type="button" data-question="Transition이 뭐야?">Transition이 뭐야?</button>
+              <button type="button" data-question="왜 확신도가 낮아?">왜 확신도가 낮아?</button>
+              <button type="button" data-question="오늘 조심할 점은?">오늘 조심할 점은?</button>
+              <button type="button" data-question="뉴스 키워드는 뭐야?">뉴스 키워드는 뭐야?</button>
+            </div>
+            <button class="run-button" id="question-button" type="button">쉽게 설명하기</button>
+            <div class="answer-box" id="beginner-answer">궁금한 점을 입력하면 현재 국면, 확신도, 뉴스, 전략 후보를 기준으로 쉽게 풀어드립니다.</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>운영 텔레메트리</h2>
+            <span class="tag">MLOps</span>
+          </header>
+          <div class="panel-body">
+            <ul class="list" id="telemetry-list"></ul>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>Transition Matrix</h2>
+            <span class="tag violet">3-State</span>
+          </header>
+          <div class="panel-body">
+            <div class="matrix" id="matrix"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>Agent JSON</h2>
+            <span class="tag">Output</span>
+          </header>
+          <div class="panel-body">
+            <pre class="json-box" id="json-box"></pre>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script type="module" src="market-regime-demo.js"></script>
+</body>
+</html>

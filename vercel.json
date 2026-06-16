@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/market-regime-demo.html"
+    }
+  ]
+}

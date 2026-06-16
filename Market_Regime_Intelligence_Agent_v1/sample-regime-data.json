@@ -1,0 +1,58 @@
+{
+  "agentName": "Market Regime Intelligence Agent",
+  "asOf": "2026-06-16 09:10 KST",
+  "currentRegime": {
+    "name": "Transition",
+    "confidenceScore": 0.68,
+    "description": "방향 불명확, 이벤트 민감도 확대",
+    "lastUpdate": "2026-06-16 09:10 KST"
+  },
+  "marketSnapshot": {
+    "kospi200": "334.8",
+    "vix": "18.2",
+    "newsTone": "mixed",
+    "breadth": "weak"
+  },
+  "transitionMonitor": {
+    "previousRegime": "Bull / Calm",
+    "currentRegime": "Transition",
+    "transitionProbability": 0.61,
+    "trendDirection": "sideways-to-down"
+  },
+  "backtestSummary": {
+    "cagr": 0.148,
+    "sharpeRatio": 1.12,
+    "maxDrawdown": -0.084,
+    "winRate": 0.57
+  },
+  "recommendedStrategies": [
+    { "name": "Bull Call Spread", "marketOutlook": "Mildly positive with capped upside", "riskLevel": "Medium", "expectedReturn": "Moderate", "openPlaybook": "Open Playbook" },
+    { "name": "Put Spread Hedge", "marketOutlook": "Supports downside protection", "riskLevel": "Low", "expectedReturn": "Low / Defensive", "openPlaybook": "Open Playbook" },
+    { "name": "Covered Call", "marketOutlook": "Range-bound to mild upside", "riskLevel": "Low", "expectedReturn": "Stable premium", "openPlaybook": "Open Playbook" },
+    { "name": "Calendar Spread", "marketOutlook": "Event-driven volatility decay", "riskLevel": "Medium", "expectedReturn": "Moderate", "openPlaybook": "Open Playbook" },
+    { "name": "Index Futures Hedge", "marketOutlook": "Portfolio protection in noisy tape", "riskLevel": "Low", "expectedReturn": "Protection first", "openPlaybook": "Open Playbook" },
+    { "name": "Long Gamma Scalping", "marketOutlook": "Volatility expansion possibility", "riskLevel": "High", "expectedReturn": "Asymmetric", "openPlaybook": "Open Playbook" },
+    { "name": "Call Ratio Spread", "marketOutlook": "Upside with controlled cost", "riskLevel": "Medium", "expectedReturn": "Moderate", "openPlaybook": "Open Playbook" },
+    { "name": "Protective Collar", "marketOutlook": "Preserve capital with capped upside", "riskLevel": "Low", "expectedReturn": "Balanced", "openPlaybook": "Open Playbook" },
+    { "name": "Low-Delta Put Buy", "marketOutlook": "Tail-risk overlay", "riskLevel": "Medium", "expectedReturn": "Insurance value", "openPlaybook": "Open Playbook" }
+  ],
+  "avoidStrategies": [
+    { "name": "Naked Short Put", "avoidReason": "Event risk remains elevated", "riskLevel": "High", "openPlaybook": "Open Playbook" },
+    { "name": "Naked Short Call", "avoidReason": "Upside surprise is not fully priced", "riskLevel": "High", "openPlaybook": "Open Playbook" },
+    { "name": "Short Straddle", "avoidReason": "Volatility regime is not stable enough", "riskLevel": "Very High", "openPlaybook": "Open Playbook" },
+    { "name": "Leveraged Trend Chase", "avoidReason": "Trend is not clean", "riskLevel": "High", "openPlaybook": "Open Playbook" },
+    { "name": "Concentrated Sector Beta", "avoidReason": "Breadth is weak and leadership is narrow", "riskLevel": "High", "openPlaybook": "Open Playbook" },
+    { "name": "Aggressive Overwrite", "avoidReason": "Premium is not compensating for transition risk", "riskLevel": "Medium / High", "openPlaybook": "Open Playbook" }
+  ],
+  "investmentCommittee": {
+    "marketReasoning": "국면 전환 구간으로 방향성보다 변동성 변화가 먼저 나타날 수 있습니다. 이벤트 일정과 뉴스 심리, breadth 약화가 함께 관찰되므로 단기 추세 추종보다 검토 중심 접근이 적합합니다.",
+    "strategyReasoning": "제한손실·방어적 구조를 우선 검토하고, 방향성 전략은 진입 타이밍과 손실 한도를 명확히 두는 쪽이 적절합니다.",
+    "riskFactors": [
+      "이벤트 캘린더 집중",
+      "뉴스 심리 혼재",
+      "breadth 약화",
+      "변동성 확장 가능성"
+    ],
+    "committeeOpinion": "현재는 공격적 방향성 전략보다 방어적 구조와 모니터링을 우선하는 것이 합리적입니다."
+  }
+}

@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market Regime Intelligence Agent v1</title>
+  <style>
+    :root {
+      --bg: #eef4fb;
+      --panel: #ffffff;
+      --panel-soft: #f6f9ff;
+      --ink: #0e1726;
+      --muted: #516074;
+      --line: #d2dbe8;
+      --blue: #1758e8;
+      --blue-deep: #0e3fa5;
+      --blue-soft: #dfe9ff;
+      --green: #13715f;
+      --red: #bf2430;
+      --amber: #b78200;
+      --radius: 18px;
+      --shadow: 0 18px 42px rgba(21, 45, 96, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f4f7fd 0%, #eef4fb 38%, #eaf0f9 100%);
+      color: var(--ink);
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; }
+
+    button, input, select, textarea { font: inherit; }
+
+    .app-shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 18px 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--blue), #3e7cff);
+      box-shadow: 0 12px 22px rgba(23, 88, 232, 0.2);
+    }
+
+    .brand-mark img {
+      width: 24px;
+      height: 24px;
+      display: block;
+    }
+
+    .brand-copy h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      font-weight: 900;
+    }
+
+    .brand-copy p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 650;
+    }
+
+    .top-kpis {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      background: var(--blue-soft);
+      border: 1px solid #c9d8fb;
+      border-radius: 999px;
+      color: var(--blue-deep);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .workflow {
+      margin-top: 16px;
+      padding: 14px 18px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .workflow-label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      margin-bottom: 12px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #e4edf9;
+      color: var(--blue-deep);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .workflow-path {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .workflow-step {
+      padding: 12px 14px;
+      text-align: center;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.45;
+      font-weight: 800;
+    }
+
+    .workflow-step strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--blue-deep);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr) 360px;
+      gap: 16px;
+      margin-top: 16px;
+      align-items: start;
+    }
+
+    .column {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .panel {
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      background: linear-gradient(180deg, #f7faff 0%, #edf4ff 100%);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel h2,
+    .panel h3 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.3;
+      font-weight: 900;
+    }
+
+    .panel-body { padding: 16px; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue-deep);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .tag.green { background: #d9f1ea; color: #116652; }
+    .tag.amber { background: #fff0c9; color: #7d5b00; }
+    .tag.red { background: #ffdfe3; color: #9f1f2a; }
+
+    .regime-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 150px;
+      gap: 18px;
+      align-items: center;
+      padding: 18px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .regime-name {
+      margin: 0;
+      font-size: clamp(34px, 4vw, 56px);
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .regime-description {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+      font-weight: 650;
+    }
+
+    .regime-meta {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .confidence-ring {
+      width: 136px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: conic-gradient(var(--blue) var(--confidence, 0%), #dbe4f4 0);
+      border: 1px solid #bfd0ec;
+    }
+
+    .confidence-ring span {
+      width: 96px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #ffffff;
+      color: var(--ink);
+      font-size: 26px;
+      font-weight: 900;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 12px;
+      font-size: 18px;
+      line-height: 1.3;
+      font-weight: 900;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .kpi {
+      padding: 14px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .kpi span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .kpi strong {
+      display: block;
+      margin-top: 10px;
+      color: var(--ink);
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .subtle-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 650;
+    }
+
+    .card-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .strategy-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .strategy-card,
+    .avoid-card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+
+    .strategy-card h4,
+    .avoid-card h4 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.35;
+      font-weight: 900;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      background: #f3f7fd;
+      border: 1px solid #d8e3f3;
+      border-radius: 999px;
+      color: #2f3c57;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .meta-chip.green { background: #daf2ea; border-color: #b9e1d1; color: #155c4d; }
+    .meta-chip.red { background: #ffe1e5; border-color: #f0b8c0; color: #9a1c2b; }
+    .meta-chip.amber { background: #fff1cb; border-color: #f0d48b; color: #7e5a00; }
+
+    .open-playbook {
+      justify-self: start;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .monitor-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .monitor-item {
+      padding: 12px;
+      background: #f8fbff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .monitor-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .monitor-item strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .backtest-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .backtest-metric {
+      padding: 12px;
+      background: #f8fbff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .backtest-metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .backtest-metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .committee-box {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+
+    .committee-box h3 { font-size: 16px; }
+
+    .committee-box p {
+      margin: 0;
+      color: #344158;
+      line-height: 1.65;
+      font-size: 14px;
+      font-weight: 650;
+      white-space: pre-line;
+    }
+
+    .committee-list {
+      margin: 0;
+      padding-left: 18px;
+      color: #344158;
+      line-height: 1.6;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .report-box {
+      padding: 16px;
+      background: linear-gradient(180deg, #f9fbff 0%, #ffffff 100%);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      white-space: pre-line;
+      line-height: 1.7;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .stacked {
+      display: grid;
+      gap: 12px;
+    }
+
+    .workflow-compact {
+      display: none;
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: 320px minmax(0, 1fr);
+      }
+
+      .layout > aside:last-child {
+        grid-column: 1 / -1;
+      }
+
+      .strategy-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 840px) {
+      .topbar,
+      .regime-card,
+      .layout,
+      .workflow-path,
+      .backtest-grid,
+      .kpi-grid,
+      .monitor-grid,
+      .strategy-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .top-kpis { justify-content: flex-start; }
+
+      .confidence-ring {
+        width: 120px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <img src="./assets/brand-mark.svg" alt="">
+        </div>
+        <div class="brand-copy">
+          <h1>Market Regime Intelligence Agent v1</h1>
+          <p>시장 국면 탐지, 전략 추천, 회피 전략, 투자위원회 초안까지 한 화면에서 보는 데모</p>
+        </div>
+      </div>
+      <div class="top-kpis">
+        <span class="pill">KOSPI200</span>
+        <span class="pill">VIX / News / AI Hub</span>
+        <span class="pill">Option Playbook Ready</span>
+      </div>
+    </header>
+
+    <section class="workflow" aria-label="Agent architecture">
+      <span class="workflow-label">AI Agent Architecture</span>
+      <div class="workflow-path">
+        <div class="workflow-step"><strong>1</strong>Market Data</div>
+        <div class="workflow-step"><strong>2</strong>Regime Detection Engine</div>
+        <div class="workflow-step"><strong>3</strong>Market Regime Intelligence Agent</div>
+        <div class="workflow-step"><strong>4</strong>Strategy Recommendation</div>
+        <div class="workflow-step"><strong>5</strong>Backtest Engine</div>
+        <div class="workflow-step"><strong>6</strong>Investment Committee Report</div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section class="column">
+        <section class="panel">
+          <header>
+            <h2>Current Market Regime</h2>
+            <span class="tag" id="current-regime-tag">Transition</span>
+          </header>
+          <div class="panel-body">
+            <div class="regime-card">
+              <div>
+                <h3 class="regime-name" id="current-regime-name">Transition</h3>
+                <p class="regime-description" id="current-regime-description">방향 불명확, 이벤트 민감도 확대</p>
+                <div class="regime-meta">
+                  <span id="current-regime-last-update">Last Update: -</span>
+                  <span id="current-regime-confidence-label">Confidence: -</span>
+                </div>
+              </div>
+              <div class="confidence-ring" id="confidence-ring" style="--confidence: 68%;">
+                <span id="confidence-value">68%</span>
+              </div>
+            </div>
+
+            <div class="kpi-grid" id="market-snapshot"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>Regime Transition Monitor</h2>
+            <span class="tag amber">Signal</span>
+          </header>
+          <div class="panel-body">
+            <div class="monitor-grid" id="transition-monitor"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>Backtest Summary</h2>
+            <span class="tag green">Historical</span>
+          </header>
+          <div class="panel-body">
+            <div class="backtest-grid" id="backtest-summary"></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="column">
+        <section class="panel">
+          <header>
+            <h2>Recommended Strategies</h2>
+            <span class="tag" id="recommendation-count">Top 9</span>
+          </header>
+          <div class="panel-body">
+            <p class="subtle-note">국면과 리스크를 함께 고려해 우선 검토할 전략입니다.</p>
+            <div class="strategy-grid stacked" id="recommended-strategies"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2>Avoid Now Strategies</h2>
+            <span class="tag red" id="avoid-count">Top 6</span>
+          </header>
+          <div class="panel-body">
+            <p class="subtle-note">현재 국면에서 비추천하거나 조심할 전략입니다.</p>
+            <div class="strategy-grid stacked" id="avoid-strategies"></div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="column">
+        <section class="panel">
+          <header>
+            <h2>Investment Committee View</h2>
+            <span class="tag">Auto Draft</span>
+          </header>
+          <div class="panel-body stacked">
+            <div class="committee-box">
+              <h3>시장 판단 근거</h3>
+              <p id="committee-market-reasoning"></p>
+            </div>
+            <div class="committee-box">
+              <h3>추천 전략 근거</h3>
+              <p id="committee-strategy-reasoning"></p>
+            </div>
+            <div class="committee-box">
+              <h3>리스크 요인</h3>
+              <ul class="committee-list" id="committee-risk-list"></ul>
+            </div>
+            <div class="committee-box">
+              <h3>투자위원회 의견</h3>
+              <p id="committee-opinion"></p>
+            </div>
+            <div class="report-box" id="committee-report"></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <script type="application/json" id="sample-regime-data-inline">
+  {
+    "agentName": "Market Regime Intelligence Agent",
+    "asOf": "2026-06-16 09:10 KST",
+    "currentRegime": {
+      "name": "Transition",
+      "confidenceScore": 0.68,
+      "description": "방향 불명확, 이벤트 민감도 확대",
+      "lastUpdate": "2026-06-16 09:10 KST"
+    },
+    "marketSnapshot": {
+      "kospi200": "334.8",
+      "vix": "18.2",
+      "newsTone": "mixed",
+      "breadth": "weak"
+    },
+    "transitionMonitor": {
+      "previousRegime": "Bull / Calm",
+      "currentRegime": "Transition",
+      "transitionProbability": 0.61,
+      "trendDirection": "sideways-to-down"
+    },
+    "backtestSummary": {
+      "cagr": 0.148,
+      "sharpeRatio": 1.12,
+      "maxDrawdown": -0.084,
+      "winRate": 0.57
+    },
+    "recommendedStrategies": [
+      { "name": "Bull Call Spread", "marketOutlook": "Mildly positive with capped upside", "riskLevel": "Medium", "expectedReturn": "Moderate", "openPlaybook": "Open Playbook" },
+      { "name": "Put Spread Hedge", "marketOutlook": "Supports downside protection", "riskLevel": "Low", "expectedReturn": "Low / Defensive", "openPlaybook": "Open Playbook" },
+      { "name": "Covered Call", "marketOutlook": "Range-bound to mild upside", "riskLevel": "Low", "expectedReturn": "Stable premium", "openPlaybook": "Open Playbook" },
+      { "name": "Calendar Spread", "marketOutlook": "Event-driven volatility decay", "riskLevel": "Medium", "expectedReturn": "Moderate", "openPlaybook": "Open Playbook" },
+      { "name": "Index Futures Hedge", "marketOutlook": "Portfolio protection in noisy tape", "riskLevel": "Low", "expectedReturn": "Protection first", "openPlaybook": "Open Playbook" },
+      { "name": "Long Gamma Scalping", "marketOutlook": "Volatility expansion possibility", "riskLevel": "High", "expectedReturn": "Asymmetric", "openPlaybook": "Open Playbook" },
+      { "name": "Call Ratio Spread", "marketOutlook": "Upside with controlled cost", "riskLevel": "Medium", "expectedReturn": "Moderate", "openPlaybook": "Open Playbook" },
+      { "name": "Protective Collar", "marketOutlook": "Preserve capital with capped upside", "riskLevel": "Low", "expectedReturn": "Balanced", "openPlaybook": "Open Playbook" },
+      { "name": "Low-Delta Put Buy", "marketOutlook": "Tail-risk overlay", "riskLevel": "Medium", "expectedReturn": "Insurance value", "openPlaybook": "Open Playbook" }
+    ],
+    "avoidStrategies": [
+      { "name": "Naked Short Put", "avoidReason": "Event risk remains elevated", "riskLevel": "High", "openPlaybook": "Open Playbook" },
+      { "name": "Naked Short Call", "avoidReason": "Upside surprise is not fully priced", "riskLevel": "High", "openPlaybook": "Open Playbook" },
+      { "name": "Short Straddle", "avoidReason": "Volatility regime is not stable enough", "riskLevel": "Very High", "openPlaybook": "Open Playbook" },
+      { "name": "Leveraged Trend Chase", "avoidReason": "Trend is not clean", "riskLevel": "High", "openPlaybook": "Open Playbook" },
+      { "name": "Concentrated Sector Beta", "avoidReason": "Breadth is weak and leadership is narrow", "riskLevel": "High", "openPlaybook": "Open Playbook" },
+      { "name": "Aggressive Overwrite", "avoidReason": "Premium is not compensating for transition risk", "riskLevel": "Medium / High", "openPlaybook": "Open Playbook" }
+    ],
+    "investmentCommittee": {
+      "marketReasoning": "국면 전환 구간으로 방향성보다 변동성 변화가 먼저 나타날 수 있습니다. 이벤트 일정과 뉴스 심리, breadth 약화가 함께 관찰되므로 단기 추세 추종보다 검토 중심 접근이 적합합니다.",
+      "strategyReasoning": "제한손실·방어적 구조를 우선 검토하고, 방향성 전략은 진입 타이밍과 손실 한도를 명확히 두는 쪽이 적절합니다.",
+      "riskFactors": [
+        "이벤트 캘린더 집중",
+        "뉴스 심리 혼재",
+        "breadth 약화",
+        "변동성 확장 가능성"
+      ],
+      "committeeOpinion": "현재는 공격적 방향성 전략보다 방어적 구조와 모니터링을 우선하는 것이 합리적입니다."
+    }
+  }
+  </script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

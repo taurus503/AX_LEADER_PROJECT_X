@@ -1,4 +1,24 @@
+# Workspace-wide ignores
+.env
+.env.*
 node_modules/
+**/node_modules/
+*.log
+*.pem
+*.tsbuildinfo
+.DS_Store
+
+# Build / cache artifacts
+**/.next/
+**/.turbo/
+**/.wrangler/
+**/.vercel/
+**/.pnpm-store/
+**/.openai/
+**/dist/
+**/build/
+
+# Legacy explicit rules kept for clarity
 option-playbook-live/node_modules/
 option-playbook-live/dist/
 option-playbook-live/.wrangler/
@@ -6,4 +26,3 @@ option-playbook-live/.openai/
 option-playbook-live/.next/
 option-playbook-live/.turbo/
 option-playbook-live/.pnpm-store/
-*.log

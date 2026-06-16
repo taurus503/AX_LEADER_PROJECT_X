@@ -1,0 +1,14 @@
+.env
+.env.*
+node_modules/
+dist/
+build/
+out/
+coverage/
+*.log
+temp_*
+*.pdf
+*.zip
+*.tar
+*.gz
+*.7z

@@ -1,9 +1,54 @@
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Dependencies and package-manager stores
 node_modules/
-option-playbook-live/node_modules/
-option-playbook-live/dist/
-option-playbook-live/.wrangler/
-option-playbook-live/.openai/
-option-playbook-live/.next/
-option-playbook-live/.turbo/
-option-playbook-live/.pnpm-store/
+.pnpm-store/
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Vercel and local deployment state
+.vercel/
+.vercel-global/
+.vercel-cli-home/
+
+# Build outputs and caches
+dist/
+build/
+out/
+.next/
+.turbo/
+.wrangler/
+.openai/
+coverage/
+*.tsbuildinfo
+
+# Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local databases and exports
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

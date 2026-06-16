@@ -1,0 +1,28 @@
+# Local secrets and credentials
+.env
+.env.*
+*.local
+*.secret
+*.key
+
+# Dependencies and package-manager stores
+node_modules/
+.pnpm-store/
+
+# Vercel/local deployment state
+.vercel/
+.vercel-global/
+.vercel-cli-home/
+
+# Build outputs and logs
+dist/
+build/
+.next/
+.turbo/
+*.log
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

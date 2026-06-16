@@ -94,4 +94,5 @@ Recommended checks for Codex 1:
   can be extended toward the full 48-strategy repository later.
 - The dashboard can accept future Codex 2 values via `/api/advisor`
   query parameters without changing the UI contract.
-
+- The current Codex 1 source snapshot is kept separate from the original
+  public dashboard in `option-advisor-core-live/`.

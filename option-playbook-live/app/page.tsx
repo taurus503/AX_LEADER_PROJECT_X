@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { AdvisorSnapshot, ScoredStrategy, ThemeItem } from "@/lib/oae";
-import type { RegimeKey } from "@/lib/market";
+import { useEffect, useState } from "react";
+import type { MarketSnapshot, RegimeKey } from "@/lib/market";
 
 const regimeCopy: Record<
   RegimeKey,
@@ -10,33 +9,29 @@ const regimeCopy: Record<
 > = {
   regime_1: {
     title: "Regime 1 · Put Skew / High Vol",
-    desc: "방어 수요가 강하고 변동성이 높은 국면입니다. 정의된 손실 구조와 헤지형 전략이 유리합니다.",
-    pill: "Defensive",
+    desc: "하방 헤지 수요가 강하고 변동성이 높은 상태입니다. 방어적 포지션과 방향성 리스크를 함께 주의합니다.",
+    pill: "Q1",
     className: "q1",
   },
   regime_2: {
     title: "Regime 2 · Call Skew / High Vol",
-    desc: "상방 기대는 살아 있지만 변동성도 높은 국면입니다. 방향성과 이벤트 적합도를 함께 봐야 합니다.",
-    pill: "Momentum",
+    desc: "상방 기대와 함께 변동성도 높은 구간입니다. 단기 반등이나 이벤트성 수급에 민감합니다.",
+    pill: "Q2",
     className: "q2",
   },
   regime_3: {
     title: "Regime 3 · Put Skew / Low Vol",
-    desc: "방어 심리는 남아 있지만 전체 변동성은 낮습니다. 보수적 인컴 구조와 방어적 프레임이 어울립니다.",
-    pill: "Carry",
+    desc: "완만한 장세에서 하방 헤지 수요가 우세합니다. 보수적 수급과 추세 둔화가 같이 보일 수 있습니다.",
+    pill: "Q3",
     className: "q3",
   },
   regime_4: {
     title: "Regime 4 · Call Skew / Low Vol",
-    desc: "상방 선호가 우세하고 변동성은 낮은 국면입니다. 프리미엄 수취와 완만한 방향성 구조를 검토합니다.",
-    pill: "Balanced",
+    desc: "저변동성 속에서 상방 기대가 상대적으로 우세한 상태입니다. 프리미엄 수요의 방향을 살펴봅니다.",
+    pill: "Q4",
     className: "q4",
   },
 };
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function formatNumber(value: number, digits = 2): string {
   return new Intl.NumberFormat("ko-KR", {
@@ -52,13 +47,14 @@ function formatScore(value: number): string {
   }).format(value);
 }
 
-function formatSignedPct(value: number): string {
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${formatScore(value)}%`;
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function useAdvisorSnapshot(selectedDate: string, refreshToken: number) {
-  const [snapshot, setSnapshot] = useState<AdvisorSnapshot | null>(null);
+export default function Home() {
+  const [selectedDate, setSelectedDate] = useState(todayIso());
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [snapshot, setSnapshot] = useState<MarketSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,22 +66,25 @@ function useAdvisorSnapshot(selectedDate: string, refreshToken: number) {
       setError(null);
 
       try {
-        const response = await fetch(`/api/advisor?date=${encodeURIComponent(selectedDate)}`, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
-        const payload = (await response.json()) as AdvisorSnapshot | { error?: string };
+        const response = await fetch(
+          `/api/snapshot?date=${encodeURIComponent(selectedDate)}`,
+          {
+            signal: controller.signal,
+            cache: "no-store",
+          },
+        );
+        const payload = (await response.json()) as
+          | MarketSnapshot
+          | { error?: string };
 
         if (!response.ok) {
-          throw new Error(
-            payload && "error" in payload ? payload.error ?? "Advisor fetch failed" : "Advisor fetch failed",
-          );
+          throw new Error(payload && "error" in payload ? payload.error : "데이터를 불러오지 못했습니다.");
         }
 
-        setSnapshot(payload as AdvisorSnapshot);
+        setSnapshot(payload as MarketSnapshot);
       } catch (loadError) {
         if (!controller.signal.aborted) {
-          setError(loadError instanceof Error ? loadError.message : "Advisor fetch failed");
+          setError(loadError instanceof Error ? loadError.message : "데이터를 불러오지 못했습니다.");
           setSnapshot(null);
         }
       } finally {
@@ -100,168 +99,58 @@ function useAdvisorSnapshot(selectedDate: string, refreshToken: number) {
     return () => controller.abort();
   }, [selectedDate, refreshToken]);
 
-  return { snapshot, loading, error };
-}
-
-function MetricCard({
-  label,
-  value,
-  delta,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  delta: string;
-  tone?: "default" | "positive" | "negative" | "muted";
-}) {
-  return (
-    <article className={`metric-card tone-${tone}`}>
-      <div className="metric-label">{label}</div>
-      <div className="metric-value">{value}</div>
-      <div className="metric-delta">{delta}</div>
-    </article>
-  );
-}
-
-function ThemeCard({ item, index }: { item: ThemeItem; index: number }) {
-  return (
-    <article className="theme-card">
-      <div className="theme-index">{index + 1}</div>
-      <div className="theme-body">
-        <a href={item.url} target="_blank" rel="noreferrer" className="theme-title">
-          {item.title}
-        </a>
-        <div className="theme-meta">
-          <span className="source-tag">{item.source ?? "search view"}</span>
-          <span>기준일 {item.date}</span>
-        </div>
-        <div className="theme-keywords">{item.keywords.join(" · ")}</div>
-      </div>
-    </article>
-  );
-}
-
-function StrategyCard({
-  item,
-  index,
-  compact = false,
-}: {
-  item: ScoredStrategy;
-  index: number;
-  compact?: boolean;
-}) {
-  return (
-    <article className={`strategy-card ${compact ? "compact" : ""} band-${item.band}`}>
-      <div className="strategy-head">
-        <div>
-          <div className="strategy-title">
-            {index + 1}. {item.title}
-          </div>
-          <div className="strategy-meta">
-            <span>{item.category}</span>
-            <span>{item.slug}</span>
-          </div>
-        </div>
-        <div className="score-chip">
-          {item.score.toFixed(0)}
-          <small>pts</small>
-        </div>
-      </div>
-      <p className="strategy-summary">{item.summary}</p>
-      <ul className="strategy-bullets">
-        {item.reasons.length > 0 ? (
-          item.reasons.map((reason) => <li key={reason}>{reason}</li>)
-        ) : (
-          <li>현재 시장 조건과의 정합성이 점수에 반영되었습니다.</li>
-        )}
-      </ul>
-      {item.cautions.length > 0 ? (
-        <ul className="strategy-bullets caution">
-          {item.cautions.map((caution) => (
-            <li key={caution}>{caution}</li>
-          ))}
-        </ul>
-      ) : null}
-      <div className="strategy-foot">
-        <a href={item.playbookUrl} target="_blank" rel="noreferrer" className="playbook-link">
-          Option Playbook 열기
-        </a>
-        <span className="band-label">{item.band === "top" ? "Top Recommended" : item.band === "watchlist" ? "Watchlist" : "Avoid Now"}</span>
-      </div>
-    </article>
-  );
-}
-
-export default function Home() {
-  const [selectedDate, setSelectedDate] = useState(todayIso());
-  const [refreshToken, setRefreshToken] = useState(0);
-  const { snapshot, loading, error } = useAdvisorSnapshot(selectedDate, refreshToken);
-
-  const activeRegimeKey = snapshot?.state.regimeKey ?? "regime_2";
+  const activeRegimeKey = snapshot?.regimeKey ?? "regime_2";
   const activeRegime = regimeCopy[activeRegimeKey];
-  const topNine = useMemo(() => snapshot?.displayTopNine ?? [], [snapshot]);
-  const avoidList = useMemo(() => snapshot?.avoidNow ?? [], [snapshot]);
-
-  const marketSource = snapshot?.source ?? (loading ? "loading" : "unknown");
-  const confidence = snapshot?.state.confidence ?? 0;
+  const confidence = snapshot?.confidence ?? 0;
+  const sourceLabel = snapshot?.source ?? (loading ? "loading" : "unknown");
   const confidenceWidth = Math.max(2, Math.min(100, confidence));
 
   return (
-    <main className="advisor-app">
-      <div className="advisor-blobs" />
-
-      <div className="advisor-shell">
-        <section className="hero-grid">
-          <div className="hero-copy">
-            <div className="hero-actions">
-              <button
-                className="refresh-button"
-                id="refreshButton"
-                type="button"
-                onClick={() => setRefreshToken((value) => value + 1)}
-              >
-                데이터 업데이트
-              </button>
-              <span className="hero-chip">Codex 1 · Option Advisor Core</span>
-              <span className="hero-chip">Codex 2 input ready</span>
-            </div>
+    <main className="app-root">
+      <div className="blobs" />
+      <div className="wrap">
+        <section className="hero">
+          <div className="title-card">
+            <div className="eyebrow">Dynamic A-Wing Regime Monitor · Real-data HTML</div>
             <h1>
-              Option Playbook
+              시장 국면을
               <br />
-              Advisor Core
+              한 화면에 보여주는 초안
             </h1>
-            <p className="hero-subtitle">
-              코스피200 시장 상태, 변동성, 스큐, 이벤트 리스크를 결합해 Top 9와 Avoid 6을 한 화면에서
-              비교하는 옵션 어드바이저 대시보드입니다. Codex 2의 레짐 뷰가 들어오면 동일한 출력
-              구조로 바로 연결됩니다.
+            <p className="subtitle">
+              이 버전은 실데이터가 연결된 HTML 스타일 대시보드입니다. 날짜를 바꾸고 버튼을 누르면
+              Yahoo Finance 공개 차트 API에서 가져온 KOSPI200 실데이터로 갱신됩니다.
             </p>
             <div className="pill-row" aria-label="status tags">
-              <span className="pill">Top 9 recommendations</span>
-              <span className="pill">Avoid 6 guardrail</span>
-              <span className="pill">Regime-aware scoring</span>
-              <span className="pill">Playbook-linked cards</span>
+              <span className="pill">2x2 Regime Grid</span>
+              <span className="pill">20D Realized Vol</span>
+              <span className="pill">20D Return Skew</span>
+              <span className="pill">Public market data</span>
             </div>
           </div>
 
-          <aside className="hero-status">
+          <div className="status-card">
             <div className="status-top">
-              <div className="status-label">Current view</div>
-              <div className="status-badge">source: {marketSource}</div>
+              <div className="status-label">현재 상태</div>
+              <div className="status-badge">source: {sourceLabel}</div>
             </div>
-            <p className="status-title">
+            <p className="big-score">
               {loading ? "Loading..." : activeRegime.title}
-              <small>{loading ? "시장을 불러오는 중입니다." : activeRegime.desc}</small>
+              <small>{loading ? "실데이터를 불러오는 중" : activeRegime.subtitle}</small>
             </p>
             <div>
               <div className="status-line">
-                <span>Confidence</span>
+                <span>신호 강도</span>
                 <strong>{loading ? "--" : `${formatScore(confidence)}%`}</strong>
               </div>
               <div className="progress">
-                <div className="progress-fill" style={{ width: `${confidenceWidth}%` }} />
+                <div
+                  className="progress-fill"
+                  style={{ width: `${confidenceWidth}%` }}
+                />
               </div>
             </div>
-          </aside>
+          </div>
         </section>
 
         <section className="control-card">
@@ -274,209 +163,84 @@ export default function Home() {
               onChange={(event) => setSelectedDate(event.target.value)}
             />
           </div>
-          <div className="control-actions">
-            <button type="button" onClick={() => setRefreshToken((value) => value + 1)}>
-              코어 재실행
-            </button>
-            <div className="control-hint">Codex 2의 market view가 있으면 /api/advisor 쿼리로 그대로 주입할 수 있습니다.</div>
-          </div>
+          <button type="button" onClick={() => setRefreshToken((value) => value + 1)}>
+            데이터 업데이트 및 구역 분석
+          </button>
         </section>
 
-        <section className="metric-grid">
-          <MetricCard
-            label="KOSPI200"
-            value={snapshot ? `${formatNumber(snapshot.market.k200Close)} pt` : "..."}
-            delta={snapshot ? `actualDate ${snapshot.actualDate}` : "waiting for data"}
-            tone="default"
-          />
-          <MetricCard
-            label="1D Change"
-            value={snapshot ? formatSignedPct(snapshot.market.change1d) : "..."}
-            delta={snapshot ? "direct price drift" : "loading"}
-            tone={snapshot ? (snapshot.market.change1d >= 0 ? "positive" : "negative") : "default"}
-          />
-          <MetricCard
-            label="1W Change"
-            value={snapshot ? formatSignedPct(snapshot.market.change5d) : "..."}
-            delta={snapshot ? "weekly momentum" : "loading"}
-            tone={snapshot ? (snapshot.market.change5d >= 0 ? "positive" : "negative") : "default"}
-          />
-          <MetricCard
-            label="20D Realized Vol"
-            value={snapshot ? formatScore(snapshot.market.realizedVol20) : "..."}
-            delta={snapshot ? "realized volatility proxy" : "loading"}
-            tone="muted"
-          />
-          <MetricCard
-            label="Vol Score"
-            value={snapshot ? formatScore(snapshot.market.volScore) : "..."}
-            delta={snapshot ? "volatility z-style score" : "loading"}
-            tone="default"
-          />
-          <MetricCard
-            label="Skew Score"
-            value={snapshot ? formatScore(snapshot.market.skewScore) : "..."}
-            delta={snapshot ? "20D skew proxy" : "loading"}
-            tone="default"
-          />
-        </section>
-
-        <section className="panel-grid">
-          <section className="panel panel-dark">
-            <div className="panel-head">
-              <h2>Regime Map</h2>
-              <span className="panel-badge">{snapshot?.state.regimeLabel ?? "Regime 2"}</span>
+        <section className="metrics">
+          <article className="metric">
+            <div className="label">KOSPI200 지수</div>
+            <div className="value">
+              {snapshot ? `${formatNumber(snapshot.k200Close)} pt` : "..." }
             </div>
+            <div className="delta">
+              {snapshot ? `기준일: ${snapshot.actualDate}` : "실데이터 대기 중"}
+            </div>
+          </article>
+          <article className="metric">
+            <div className="label">20D Realized Vol</div>
+            <div className="value">
+              {snapshot ? `${formatScore(snapshot.realizedVol20)}` : "..."}
+            </div>
+            <div className="delta">
+              {snapshot ? "실제 가격 변동성" : "데이터 로딩 중"}
+            </div>
+          </article>
+          <article className="metric">
+            <div className="label">Volatility Score (Y축)</div>
+            <div className="value">{snapshot ? formatScore(snapshot.volScore) : "..."}</div>
+            <div className="delta">{snapshot ? "Realized vol z-score" : "데이터 로딩 중"}</div>
+          </article>
+          <article className="metric">
+            <div className="label">Skewness Score (X축)</div>
+            <div className="value">{snapshot ? formatScore(snapshot.skewScore) : "..."}</div>
+            <div className="delta">{snapshot ? "20D return skew proxy" : "데이터 로딩 중"}</div>
+          </article>
+        </section>
+
+        <section className="grid">
+          <div>
             <div className="regime-grid">
-              {(Object.entries(regimeCopy) as Array<[RegimeKey, (typeof regimeCopy)[RegimeKey]]>).map(
-                ([key, item]) => (
-                  <article
-                    key={key}
-                    className={`regime-card ${item.className} ${activeRegimeKey === key ? "active" : ""}`}
-                  >
-                    <div className="regime-heading">{item.title}</div>
-                    <div className="regime-desc">{item.desc}</div>
-                    <div className="regime-pill">{item.pill}</div>
-                  </article>
-                ),
-              )}
-            </div>
-          </section>
-
-          <aside className="panel panel-orange">
-            <div className="panel-head">
-              <h2>Committee Brief</h2>
-              <span className="panel-badge">Codex 1</span>
-            </div>
-            <div className="brief-copy">
-              {snapshot?.committeeBrief ??
-                "이 영역은 Codex 1이 선택한 Top/Watchlist/Avoid 구조를 한 문단으로 요약합니다."}
-            </div>
-            <div className="brief-list">
-              {(snapshot?.rationale ?? []).map((text) => (
-                <div key={text} className="brief-line">
-                  {text}
-                </div>
+              {(
+                Object.entries(regimeCopy) as Array<
+                  [RegimeKey, (typeof regimeCopy)[RegimeKey]]
+                >
+              ).map(([key, item]) => (
+                <article
+                  key={key}
+                  className={`regime-card ${item.className} ${activeRegimeKey === key ? "active" : ""}`}
+                >
+                  <div className="heading">{item.title}</div>
+                  <div className="desc">{item.desc}</div>
+                  <div className="signal">{item.pill}</div>
+                </article>
               ))}
+            </div>
+          </div>
+
+          <aside className="panel">
+            <h2>다음 단계 연결 포인트</h2>
+            <p>
+              이 초안은 실제 데이터가 연결된 HTML 기반 대시보드입니다. 다음 단계에서는 API
+              라우트만 바꿔서 KRX 로그인형 데이터나 다른 데이터 소스로 교체할 수 있습니다.
+            </p>
+            <ul>
+              <li>날짜 선택값을 API 요청 파라미터로 전송</li>
+              <li>KOSPI200 실데이터와 20일 변동성 지표를 JSON으로 수신</li>
+              <li>받은 값으로 활성 regime만 자동 강조</li>
+              <li>실패 시에는 화면 하단에 에러 메시지만 표시</li>
+            </ul>
+            <div className="note-card">
+              {error
+                ? `데이터 연결 실패: ${error}`
+                : snapshot?.note ??
+                  "현재는 실데이터 연결 상태입니다. 다음 단계에서 옵션 기반 skew proxy로 바꿀 수도 있습니다."}
+            </div>
+            <div className="footer">
+              {snapshot ? `series length: ${snapshot.seriesLength}` : "waiting for data"}
             </div>
           </aside>
-        </section>
-
-        <section className="panel-grid">
-          <section className="panel panel-green">
-            <div className="panel-head">
-              <h2>Headline Themes</h2>
-              <span className="panel-badge">search view</span>
-            </div>
-            <div className="theme-grid">
-              {(snapshot?.headlineThemes ?? []).map((item, index) => (
-                <ThemeCard key={item.title + item.date} item={item} index={index} />
-              ))}
-            </div>
-          </section>
-
-          <section className="panel panel-dark">
-            <div className="panel-head">
-              <h2>Report Themes</h2>
-              <span className="panel-badge">search view</span>
-            </div>
-            <div className="theme-grid">
-              {(snapshot?.reportThemes ?? []).map((item, index) => (
-                <ThemeCard key={item.title + item.date} item={item} index={index} />
-              ))}
-            </div>
-          </section>
-        </section>
-
-        <section className="panel-grid">
-          <section className="panel panel-dark">
-            <div className="panel-head">
-              <h2>Top Recommended 9</h2>
-              <span className="panel-badge">ranked output</span>
-            </div>
-            <div className="strategy-grid">
-              {topNine.map((item, index) => (
-                <StrategyCard key={item.slug} item={item} index={index} />
-              ))}
-            </div>
-          </section>
-
-          <section className="panel panel-orange">
-            <div className="panel-head">
-              <h2>Avoid Now 6</h2>
-              <span className="panel-badge">guardrail</span>
-            </div>
-            <div className="strategy-grid">
-              {avoidList.map((item, index) => (
-                <StrategyCard key={item.slug} item={item} index={index} compact />
-              ))}
-            </div>
-          </section>
-        </section>
-
-        <section className="panel-grid">
-          <section className="panel panel-green">
-            <div className="panel-head">
-              <h2>Validation Notes</h2>
-              <span className="panel-badge">Codex 3 ready</span>
-            </div>
-            <div className="brief-list">
-              {(snapshot?.validationNotes ?? []).map((text) => (
-                <div key={text} className="brief-line">
-                  {text}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="panel panel-dark">
-            <div className="panel-head">
-              <h2>Ops Notes</h2>
-              <span className="panel-badge">MLOps / DevOps</span>
-            </div>
-            <div className="brief-list">
-              {(snapshot?.opsNotes ?? []).map((text) => (
-                <div key={text} className="brief-line">
-                  {text}
-                </div>
-              ))}
-            </div>
-            <div className="footer-note">
-              {error ? `Advisor fetch failed: ${error}` : snapshot?.market.note ?? "waiting for advisor snapshot"}
-            </div>
-          </section>
-        </section>
-
-        <section className="panel panel-bottom">
-          <div className="panel-head">
-            <h2>Implementation Alignment</h2>
-            <span className="panel-badge">backup-compatible</span>
-          </div>
-          <div className="alignment-grid">
-            <div>
-              <strong>Existing backup page</strong>
-              <p>
-                현재 레이아웃은 기존
-                {" "}
-                <code>Option_Playbook_Advisor_backup_2026-06-12_v5.6</code>
-                {" "}
-                스타일의 정보 밀도를 유지하면서, Codex 1 결과를 그대로 끼워 넣을 수 있도록 만들었습니다.
-              </p>
-            </div>
-            <div>
-              <strong>Codex 2 handshake</strong>
-              <p>
-                이후에는 <code>/api/advisor</code>에 regime, volScore, skewScore, confidence를 쿼리로 주입해
-                Regime & Market View 에이전트가 만든 결과를 그대로 넘길 수 있습니다.
-              </p>
-            </div>
-            <div>
-              <strong>Codex 3 / Codex 4</strong>
-              <p>
-                validation notes와 reasoning strings를 남겨 두어서 PASS/Review/Reject와 attribution preview를 붙이기 쉽게 했습니다.
-              </p>
-            </div>
-          </div>
         </section>
       </div>
     </main>

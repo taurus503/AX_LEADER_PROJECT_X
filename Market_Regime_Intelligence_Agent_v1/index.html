@@ -99,6 +99,31 @@
       justify-content: flex-end;
     }
 
+    .metric-pill {
+      display: grid;
+      gap: 2px;
+      min-width: 132px;
+      padding: 10px 12px;
+      background: var(--blue-soft);
+      border: 1px solid #c9d8fb;
+      border-radius: 14px;
+      color: var(--blue-deep);
+    }
+
+    .metric-pill .label {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .metric-pill .value {
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
     .pill {
       min-height: 34px;
       display: inline-flex;
@@ -111,6 +136,71 @@
       font-size: 12px;
       font-weight: 900;
       white-space: nowrap;
+    }
+
+    .control-strip {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 14px 16px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .control-hint {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 650;
+    }
+
+    .control-form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .date-field {
+      display: grid;
+      gap: 4px;
+    }
+
+    .date-field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .date-field input {
+      min-height: 38px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .action-button {
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .action-button.secondary {
+      background: #fff;
+      color: var(--blue-deep);
     }
 
     .workflow {
@@ -551,11 +641,32 @@
         </div>
       </div>
       <div class="top-kpis">
-        <span class="pill">KOSPI200</span>
+        <div class="metric-pill">
+          <span class="label">KOSPI200</span>
+          <span class="value" id="kospi200-value">-</span>
+        </div>
+        <div class="metric-pill">
+          <span class="label">Prev. Trading Day</span>
+          <span class="value" id="kospi200-prev-value">-</span>
+        </div>
         <span class="pill">VIX / News / AI Hub</span>
         <span class="pill">Option Playbook Ready</span>
       </div>
     </header>
+
+    <section class="control-strip" aria-label="Data controls">
+      <div>
+        <div class="control-hint" id="data-control-message">실패 시 날짜를 선택해 다시 조회할 수 있습니다. 캘린더에서 기준일을 바꾸고 적용하세요.</div>
+      </div>
+      <div class="control-form">
+        <div class="date-field">
+          <label for="as-of-date">기준일</label>
+          <input id="as-of-date" type="date">
+        </div>
+        <button class="action-button" id="apply-date-button" type="button">적용</button>
+        <button class="action-button secondary" id="reset-date-button" type="button">샘플로 복원</button>
+      </div>
+    </section>
 
     <section class="workflow" aria-label="Agent architecture">
       <span class="workflow-label">AI Agent Architecture</span>
@@ -682,6 +793,7 @@
     },
     "marketSnapshot": {
       "kospi200": "334.8",
+      "previousTradingDayKospi200": "332.1",
       "vix": "18.2",
       "newsTone": "mixed",
       "breadth": "weak"

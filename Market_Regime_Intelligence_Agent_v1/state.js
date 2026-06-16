@@ -26,6 +26,7 @@ export function createAgentState(raw) {
     },
     marketSnapshot: {
       kospi200: String(marketSnapshot.kospi200 || "-"),
+      previousTradingDayKospi200: String(marketSnapshot.previousTradingDayKospi200 || "-"),
       vix: String(marketSnapshot.vix || "-"),
       newsTone: String(marketSnapshot.newsTone || "-"),
       breadth: String(marketSnapshot.breadth || "-")

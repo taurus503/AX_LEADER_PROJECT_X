@@ -16,6 +16,14 @@ function renderCards(targetId, items, mapper) {
   target.innerHTML = items.map(mapper).join("");
 }
 
+export function renderHeaderMetrics(state) {
+  const current = el("kospi200-value");
+  const previous = el("kospi200-prev-value");
+
+  if (current) current.textContent = state.marketSnapshot.kospi200;
+  if (previous) previous.textContent = state.marketSnapshot.previousTradingDayKospi200;
+}
+
 export function renderCurrentRegime(state) {
   const tag = el("current-regime-tag");
   const name = el("current-regime-name");
@@ -39,6 +47,7 @@ export function renderCurrentRegime(state) {
 export function renderMarketSnapshot(state) {
   renderCards("market-snapshot", [
     ["KOSPI200", state.marketSnapshot.kospi200],
+    ["Prev. KOSPI200", state.marketSnapshot.previousTradingDayKospi200],
     ["VIX", state.marketSnapshot.vix],
     ["News Tone", state.marketSnapshot.newsTone],
     ["Breadth", state.marketSnapshot.breadth]

@@ -9,6 +9,7 @@
   },
   "marketSnapshot": {
     "kospi200": "334.8",
+    "previousTradingDayKospi200": "332.1",
     "vix": "18.2",
     "newsTone": "mixed",
     "breadth": "weak"

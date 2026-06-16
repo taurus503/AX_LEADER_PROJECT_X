@@ -57,4 +57,4 @@
 - 화면 파일: `index.html`
 - 배포 설정: `vercel.json`
 - 저장소 첫 화면: `README.md`
-- 외부 확인: Vercel production URL
+- 외부 확인: https://option-rho.vercel.app

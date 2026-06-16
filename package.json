@@ -6,9 +6,9 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "vinext build",
-    "dev": "vinext dev",
-    "start": "vinext start",
+    "build": "next build",
+    "dev": "next dev",
+    "start": "next start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },

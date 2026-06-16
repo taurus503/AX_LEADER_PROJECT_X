@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dynamic A-Wing Regime Monitor",
-  description: "Real-data HTML dashboard for KOSPI200 regime monitoring.",
+  title: "Option Playbook Advisor Core",
+  description: "Codex 1 Option Advisor Core dashboard for KOSPI200 regime-aware option selection.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

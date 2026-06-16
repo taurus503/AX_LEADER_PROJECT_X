@@ -11,8 +11,17 @@ Public dashboard source lives in [`option-playbook-live/`](./option-playbook-liv
 - GitHub repository: `taurus503/AX_LEADER_PROJECT_X`
 - Vercel serves the public dashboard from `option-playbook-live/`
 - The root `index.html` redirects to the dashboard folder
-- The API endpoint is served from `api/snapshot.js`
+- The market snapshot API lives at `option-playbook-live/app/api/snapshot/route.ts`
+- The Codex 1 advisor API lives at `option-playbook-live/app/api/advisor/route.ts`
 
 ## Local Run
 
-Open `option-playbook-live/index.html` in a browser, or use a local static server that serves the repo root.
+Run the app from `option-playbook-live/` with the usual vinext workflow:
+
+```bash
+cd option-playbook-live
+npm install
+npm run dev
+```
+
+If you are only checking the public redirect, open the repo root `index.html`.

@@ -6,6 +6,9 @@ export interface MarketSnapshot {
   actualDate: string;
   k200Close: number;
   k200PrevClose: number | null;
+  change1d: number;
+  change5d: number;
+  change21d: number;
   realizedVol20: number;
   skew20: number;
   volScore: number;
@@ -37,6 +40,26 @@ interface PricePoint {
   close: number;
 }
 
+const FALLBACK_SNAPSHOT = {
+  source: "Sample fallback snapshot",
+  actualDate: "2026-06-10",
+  k200Close: 1227.12,
+  k200PrevClose: 1217.36,
+  change1d: 0.8,
+  change5d: 2.1,
+  change21d: 5.6,
+  realizedVol20: 24.8,
+  skew20: -0.14,
+  volScore: 18.4,
+  skewScore: -11.2,
+  confidence: 24.2,
+  regimeKey: "regime_2" as RegimeKey,
+  regimeLabel: "Regime 2",
+  regimeSubtitle: "Call skew / High vol",
+  note: "Fallback snapshot used because live market data was unavailable.",
+  seriesLength: 0,
+};
+
 function toIsoDate(value: number | string | Date): string {
   const date = value instanceof Date ? value : new Date(value);
   return date.toISOString().slice(0, 10);
@@ -44,9 +67,9 @@ function toIsoDate(value: number | string | Date): string {
 
 function normalizeDateInput(input?: string | null): string | null {
   if (!input) return null;
-  const d = new Date(input);
-  if (Number.isNaN(d.getTime())) return null;
-  return toIsoDate(d);
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return null;
+  return toIsoDate(date);
 }
 
 function mean(values: number[]): number {
@@ -69,8 +92,7 @@ function skewness(values: number[]): number {
   const sd = stddev(values);
   if (!sd) return 0;
   const n = values.length;
-  const m3 =
-    values.reduce((acc, value) => acc + (value - avg) ** 3, 0) / n;
+  const m3 = values.reduce((acc, value) => acc + (value - avg) ** 3, 0) / n;
   return m3 / (sd ** 3);
 }
 
@@ -108,7 +130,9 @@ async function fetchYahooChart(
   range: string,
   interval: string,
 ): Promise<PricePoint[]> {
-  const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
+  const url = new URL(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`,
+  );
   url.searchParams.set("range", range);
   url.searchParams.set("interval", interval);
   url.searchParams.set("includePrePost", "false");
@@ -162,9 +186,9 @@ function pickPointOnOrBefore(
   }
 
   let selectedIndex = -1;
-  for (let i = 0; i < points.length; i += 1) {
-    if (points[i].date <= targetDate) {
-      selectedIndex = i;
+  for (let index = 0; index < points.length; index += 1) {
+    if (points[index].date <= targetDate) {
+      selectedIndex = index;
     }
   }
 
@@ -181,71 +205,115 @@ function classifyRegime(skewScore: number, volScore: number): {
   subtitle: string;
 } {
   if (skewScore >= 0 && volScore >= 0) {
-    return { key: "regime_1", label: "Regime 1", subtitle: "Put skew · High vol" };
+    return { key: "regime_1", label: "Regime 1", subtitle: "Put skew / High vol" };
   }
+
   if (skewScore < 0 && volScore >= 0) {
-    return { key: "regime_2", label: "Regime 2", subtitle: "Call skew · High vol" };
+    return { key: "regime_2", label: "Regime 2", subtitle: "Call skew / High vol" };
   }
+
   if (skewScore < 0 && volScore < 0) {
-    return { key: "regime_4", label: "Regime 4", subtitle: "Call skew · Low vol" };
+    return { key: "regime_4", label: "Regime 4", subtitle: "Call skew / Low vol" };
   }
-  return { key: "regime_3", label: "Regime 3", subtitle: "Put skew · Low vol" };
+
+  return { key: "regime_3", label: "Regime 3", subtitle: "Put skew / Low vol" };
 }
 
 function scaleToScore(value: number, baseline: number, spread: number): number {
-  if (!Number.isFinite(value) || !Number.isFinite(baseline) || !Number.isFinite(spread) || spread <= 0) {
+  if (
+    !Number.isFinite(value) ||
+    !Number.isFinite(baseline) ||
+    !Number.isFinite(spread) ||
+    spread <= 0
+  ) {
     return 0;
   }
 
   return Math.max(-100, Math.min(100, ((value - baseline) / spread) * 100));
 }
 
-export async function getMarketSnapshot(dateInput?: string | null): Promise<MarketSnapshot> {
-  const selectedDate = normalizeDateInput(dateInput) ?? toIsoDate(new Date());
-  const points = await fetchYahooChart("^KS200", "2y", "1d");
-  const { index, point } = pickPointOnOrBefore(points, selectedDate);
-
-  if (index < 20) {
-    throw new Error("Not enough historical data to compute scores");
-  }
-
-  const closesUpToSelected = points.slice(0, index + 1).map((item) => item.close);
-  const close = point.close;
-  const prevClose = points[index - 1]?.close ?? null;
-
-  const returns = logReturns(closesUpToSelected);
-  const windowReturns = returns.slice(-20);
-  const realizedVol20 = stddev(windowReturns) * Math.sqrt(252) * 100;
-  const skew20 = skewness(windowReturns);
-
-  const rolling = rollingStats(closesUpToSelected, 20);
-  const recentRolling = rolling.slice(-60);
-
-  const volBaseline = mean(recentRolling.map((entry) => entry.vol));
-  const volSpread = stddev(recentRolling.map((entry) => entry.vol)) || 1;
-  const skewBaseline = mean(recentRolling.map((entry) => entry.skew));
-  const skewSpread = stddev(recentRolling.map((entry) => entry.skew)) || 1;
-
-  const volScore = scaleToScore(realizedVol20, volBaseline, volSpread / 1.5);
-  const skewScore = scaleToScore(skew20, skewBaseline, skewSpread / 1.5);
-  const confidence = Math.max(0, Math.min(100, Math.hypot(volScore, skewScore) * 0.9));
-  const regime = classifyRegime(skewScore, volScore);
-
+function buildFallbackSnapshot(selectedDate: string): MarketSnapshot {
+  const regime = classifyRegime(FALLBACK_SNAPSHOT.skewScore, FALLBACK_SNAPSHOT.volScore);
   return {
-    source: "Yahoo Finance public chart API",
+    source: FALLBACK_SNAPSHOT.source,
     selectedDate,
-    actualDate: point.date,
-    k200Close: close,
-    k200PrevClose: prevClose,
-    realizedVol20,
-    skew20,
-    volScore,
-    skewScore,
-    confidence,
+    actualDate: FALLBACK_SNAPSHOT.actualDate,
+    k200Close: FALLBACK_SNAPSHOT.k200Close,
+    k200PrevClose: FALLBACK_SNAPSHOT.k200PrevClose,
+    change1d: FALLBACK_SNAPSHOT.change1d,
+    change5d: FALLBACK_SNAPSHOT.change5d,
+    change21d: FALLBACK_SNAPSHOT.change21d,
+    realizedVol20: FALLBACK_SNAPSHOT.realizedVol20,
+    skew20: FALLBACK_SNAPSHOT.skew20,
+    volScore: FALLBACK_SNAPSHOT.volScore,
+    skewScore: FALLBACK_SNAPSHOT.skewScore,
+    confidence: FALLBACK_SNAPSHOT.confidence,
     regimeKey: regime.key,
     regimeLabel: regime.label,
     regimeSubtitle: regime.subtitle,
-    note: "Real-data proxy: volatility uses 20D realized vol, skew uses 20D return skew from KOSPI200 history.",
-    seriesLength: points.length,
+    note: FALLBACK_SNAPSHOT.note,
+    seriesLength: FALLBACK_SNAPSHOT.seriesLength,
   };
+}
+
+export async function getMarketSnapshot(
+  dateInput?: string | null,
+): Promise<MarketSnapshot> {
+  const selectedDate = normalizeDateInput(dateInput) ?? toIsoDate(new Date());
+
+  try {
+    const points = await fetchYahooChart("^KS200", "2y", "1d");
+    const { index, point } = pickPointOnOrBefore(points, selectedDate);
+
+    if (index < 20) {
+      throw new Error("Not enough historical data to compute scores");
+    }
+
+    const closesUpToSelected = points.slice(0, index + 1).map((item) => item.close);
+    const close = point.close;
+    const prevClose = points[index - 1]?.close ?? null;
+    const weekClose = points[index - 5]?.close ?? prevClose ?? close;
+    const monthClose = points[index - 21]?.close ?? weekClose;
+
+    const returns = logReturns(closesUpToSelected);
+    const windowReturns = returns.slice(-20);
+    const realizedVol20 = stddev(windowReturns) * Math.sqrt(252) * 100;
+    const skew20 = skewness(windowReturns);
+
+    const rolling = rollingStats(closesUpToSelected, 20);
+    const recentRolling = rolling.slice(-60);
+
+    const volBaseline = mean(recentRolling.map((entry) => entry.vol));
+    const volSpread = stddev(recentRolling.map((entry) => entry.vol)) || 1;
+    const skewBaseline = mean(recentRolling.map((entry) => entry.skew));
+    const skewSpread = stddev(recentRolling.map((entry) => entry.skew)) || 1;
+
+    const volScore = scaleToScore(realizedVol20, volBaseline, volSpread / 1.5);
+    const skewScore = scaleToScore(skew20, skewBaseline, skewSpread / 1.5);
+    const confidence = Math.max(0, Math.min(100, Math.hypot(volScore, skewScore) * 0.9));
+    const regime = classifyRegime(skewScore, volScore);
+
+    return {
+      source: "Yahoo Finance public chart API",
+      selectedDate,
+      actualDate: point.date,
+      k200Close: close,
+      k200PrevClose: prevClose,
+      change1d: prevClose ? ((close / prevClose - 1) * 100) : 0,
+      change5d: weekClose ? ((close / weekClose - 1) * 100) : 0,
+      change21d: monthClose ? ((close / monthClose - 1) * 100) : 0,
+      realizedVol20,
+      skew20,
+      volScore,
+      skewScore,
+      confidence,
+      regimeKey: regime.key,
+      regimeLabel: regime.label,
+      regimeSubtitle: regime.subtitle,
+      note: "Real-data proxy: volatility uses 20D realized vol, skew uses 20D return skew from KOSPI200 history.",
+      seriesLength: points.length,
+    };
+  } catch {
+    return buildFallbackSnapshot(selectedDate);
+  }
 }

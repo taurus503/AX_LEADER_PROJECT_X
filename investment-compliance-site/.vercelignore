@@ -1,8 +1,0 @@
-*
-!api
-!api/**
-!build
-!build/**
-!lib
-!lib/**
-!vercel.json

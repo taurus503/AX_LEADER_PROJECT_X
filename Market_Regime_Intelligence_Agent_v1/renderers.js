@@ -19,9 +19,11 @@ function renderCards(targetId, items, mapper) {
 export function renderHeaderMetrics(state) {
   const current = el("kospi200-value");
   const previous = el("kospi200-prev-value");
+  const dataDate = el("market-data-date");
 
   if (current) current.textContent = state.marketSnapshot.kospi200;
   if (previous) previous.textContent = state.marketSnapshot.previousTradingDayKospi200;
+  if (dataDate) dataDate.textContent = state.marketSnapshot.dataDate;
 }
 
 export function renderCurrentRegime(state) {
@@ -46,11 +48,11 @@ export function renderCurrentRegime(state) {
 
 export function renderMarketSnapshot(state) {
   renderCards("market-snapshot", [
-    ["KOSPI200", state.marketSnapshot.kospi200],
-    ["Prev. KOSPI200", state.marketSnapshot.previousTradingDayKospi200],
-    ["VIX", state.marketSnapshot.vix],
-    ["News Tone", state.marketSnapshot.newsTone],
-    ["Breadth", state.marketSnapshot.breadth]
+    ["기준일", state.marketSnapshot.dataDate],
+    ["KOSPI200 종가", state.marketSnapshot.kospi200],
+    ["전일 종가", state.marketSnapshot.previousTradingDayKospi200],
+    ["증감율", `${state.marketSnapshot.dailyChangeRate >= 0 ? "+" : ""}${formatDecimal(state.marketSnapshot.dailyChangeRate, 2)}%`],
+    ["역사적 변동성", `${formatDecimal(state.marketSnapshot.historicalVolatility, 2)}%`]
   ], ([label, value]) => `
     <div class="kpi">
       <span>${label}</span>

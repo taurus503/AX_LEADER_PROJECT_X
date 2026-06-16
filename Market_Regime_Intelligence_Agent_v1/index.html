@@ -384,7 +384,7 @@
 
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 10px;
       margin-top: 14px;
     }
@@ -649,6 +649,10 @@
           <span class="label">Prev. Trading Day</span>
           <span class="value" id="kospi200-prev-value">-</span>
         </div>
+        <div class="metric-pill">
+          <span class="label">기준일</span>
+          <span class="value" id="market-data-date">-</span>
+        </div>
         <span class="pill">VIX / News / AI Hub</span>
         <span class="pill">Option Playbook Ready</span>
       </div>
@@ -656,15 +660,15 @@
 
     <section class="control-strip" aria-label="Data controls">
       <div>
-        <div class="control-hint" id="data-control-message">실패 시 날짜를 선택해 다시 조회할 수 있습니다. 캘린더에서 기준일을 바꾸고 적용하세요.</div>
+        <div class="control-hint" id="data-control-message">기준일을 바꾸고 업데이트를 누르면 해당일 기준으로 종가, 증감율, 역사적 변동성을 다시 계산합니다.</div>
       </div>
       <div class="control-form">
         <div class="date-field">
           <label for="as-of-date">기준일</label>
           <input id="as-of-date" type="date">
         </div>
-        <button class="action-button" id="apply-date-button" type="button">적용</button>
-        <button class="action-button secondary" id="reset-date-button" type="button">샘플로 복원</button>
+        <button class="action-button" id="apply-date-button" type="button">업데이트</button>
+        <button class="action-button secondary" id="reset-date-button" type="button">오늘 기준</button>
       </div>
     </section>
 

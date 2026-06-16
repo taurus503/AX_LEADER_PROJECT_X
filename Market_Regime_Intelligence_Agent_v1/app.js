@@ -1,4 +1,4 @@
-import { loadSampleRegimeData } from "./data-loader.js";
+import { getDefaultTradingDate, loadSampleRegimeData, normalizeDateInput } from "./data-loader.js";
 import { createAgentState } from "./state.js";
 import {
   renderBacktestSummary,
@@ -12,15 +12,17 @@ import {
 } from "./renderers.js";
 import { composeCommitteeReport } from "./report-composer.js";
 
-function normalizeDateInput(value) {
-  const match = String(value || "").match(/^(\d{4}-\d{2}-\d{2})/);
-  return match ? match[1] : "";
-}
-
-function syncControls(state, targetDate) {
+function syncControls(targetDate) {
   const input = document.getElementById("as-of-date");
   if (input) {
-    input.value = normalizeDateInput(targetDate || state.asOf);
+    input.value = normalizeDateInput(targetDate);
+  }
+}
+
+function setControlMessage(text) {
+  const hint = document.getElementById("data-control-message");
+  if (hint) {
+    hint.textContent = text;
   }
 }
 
@@ -30,16 +32,13 @@ function showBootError(error) {
     fallback.textContent = `데이터를 불러오지 못했습니다.\n${String(error?.message || error)}`;
   }
 
-  const hint = document.getElementById("data-control-message");
-  if (hint) {
-    hint.textContent = "실패했습니다. 날짜를 선택한 뒤 적용을 눌러 다시 시도하세요.";
-  }
-
+  setControlMessage("입력 데이터 연결에 실패했습니다. 기준일을 바꾸거나 업데이트 버튼으로 다시 계산할 수 있습니다.");
   console.error(error);
 }
 
 async function boot(targetDate) {
-  const raw = await loadSampleRegimeData(targetDate);
+  const effectiveDate = normalizeDateInput(targetDate) || getDefaultTradingDate();
+  const raw = await loadSampleRegimeData(effectiveDate);
   const state = createAgentState(raw);
 
   renderHeaderMetrics(state);
@@ -67,13 +66,8 @@ async function boot(targetDate) {
     avoidCount.textContent = `Top ${state.avoidStrategies.length}`;
   }
 
-  syncControls(state, targetDate);
-
-  document.querySelectorAll("[data-playbook]").forEach((button) => {
-    button.addEventListener("click", () => {
-      document.getElementById("committee-report")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  });
+  syncControls(effectiveDate);
+  setControlMessage(`기준일 ${effectiveDate} 기준으로 종가, 증감율, 역사적 변동성을 다시 계산했습니다. 업데이트 버튼으로 수동 반영할 수 있습니다.`);
 }
 
 function wireControls() {
@@ -83,12 +77,26 @@ function wireControls() {
 
   applyButton?.addEventListener("click", () => {
     const value = normalizeDateInput(input?.value);
-    boot(value || undefined).catch(showBootError);
+    boot(value || getDefaultTradingDate()).catch(showBootError);
   });
 
   resetButton?.addEventListener("click", () => {
-    if (input) input.value = "";
-    boot().catch(showBootError);
+    const defaultDate = getDefaultTradingDate();
+    if (input) input.value = defaultDate;
+    boot(defaultDate).catch(showBootError);
+  });
+
+  input?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      const value = normalizeDateInput(input.value);
+      boot(value || getDefaultTradingDate()).catch(showBootError);
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-playbook]");
+    if (!button) return;
+    document.getElementById("committee-report")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
 

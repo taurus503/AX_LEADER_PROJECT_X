@@ -2,10 +2,9 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function clampPercent(value) {
+function toNumber(value, fallback = 0) {
   const n = Number(value);
-  if (Number.isNaN(n)) return 0;
-  return Math.max(0, Math.min(100, n));
+  return Number.isNaN(n) ? fallback : n;
 }
 
 export function createAgentState(raw) {
@@ -20,13 +19,17 @@ export function createAgentState(raw) {
     asOf: String(raw.asOf || currentRegime.lastUpdate || "-"),
     currentRegime: {
       name: String(currentRegime.name || "Transition"),
-      confidenceScore: Number(currentRegime.confidenceScore || 0),
+      confidenceScore: toNumber(currentRegime.confidenceScore, 0),
       description: String(currentRegime.description || ""),
       lastUpdate: String(currentRegime.lastUpdate || raw.asOf || "-")
     },
     marketSnapshot: {
+      dataDate: String(marketSnapshot.dataDate || raw.asOf?.slice(0, 10) || "-"),
       kospi200: String(marketSnapshot.kospi200 || "-"),
+      previousTradingDayDate: String(marketSnapshot.previousTradingDayDate || "-"),
       previousTradingDayKospi200: String(marketSnapshot.previousTradingDayKospi200 || "-"),
+      dailyChangeRate: toNumber(marketSnapshot.dailyChangeRate, 0),
+      historicalVolatility: toNumber(marketSnapshot.historicalVolatility, 0),
       vix: String(marketSnapshot.vix || "-"),
       newsTone: String(marketSnapshot.newsTone || "-"),
       breadth: String(marketSnapshot.breadth || "-")
@@ -34,14 +37,14 @@ export function createAgentState(raw) {
     transitionMonitor: {
       previousRegime: String(transitionMonitor.previousRegime || "-"),
       currentRegime: String(transitionMonitor.currentRegime || currentRegime.name || "-"),
-      transitionProbability: clampPercent((Number(transitionMonitor.transitionProbability || 0) || 0) * 100),
+      transitionProbability: toNumber(transitionMonitor.transitionProbability, 0),
       trendDirection: String(transitionMonitor.trendDirection || "-")
     },
     backtestSummary: {
-      cagr: Number(backtestSummary.cagr || 0),
-      sharpeRatio: Number(backtestSummary.sharpeRatio || 0),
-      maxDrawdown: Number(backtestSummary.maxDrawdown || 0),
-      winRate: Number(backtestSummary.winRate || 0)
+      cagr: toNumber(backtestSummary.cagr, 0),
+      sharpeRatio: toNumber(backtestSummary.sharpeRatio, 0),
+      maxDrawdown: toNumber(backtestSummary.maxDrawdown, 0),
+      winRate: toNumber(backtestSummary.winRate, 0)
     },
     recommendedStrategies: asArray(raw.recommendedStrategies).slice(0, 9),
     avoidStrategies: asArray(raw.avoidStrategies).slice(0, 6),

@@ -261,41 +261,368 @@ function renderNews(newsContext) {
   `).join("");
 }
 
-function renderValidation(data) {
-  const cells = [
-    { label: "PASS", value: data.validation.status === "PASS" ? "PASS" : "PASS 후보", cls: "pass" },
-    { label: "REVIEW", value: data.validation.status === "REVIEW" ? "REVIEW" : "검토 필요", cls: "review" },
-    { label: "REJECT", value: data.validation.status === "REJECT" ? "REJECT" : "대체로 비권장", cls: "reject" },
-    { label: "Validation Score", value: `${data.validation.score}`, cls: "review" },
-    { label: "Risk Warning", value: data.validation.riskWarning, cls: "reject" },
-    { label: "Validation Comment", value: data.validation.comment, cls: "pass" },
-    { label: "Production Source", value: "TEST_3", cls: "pass" },
-    { label: "Update Signal", value: data.attribution.updateSignal, cls: "review" },
-    { label: "Committee Hint", value: data.committee.recommendation, cls: "review" }
-  ];
+function renderStrategies(data) {
+  const recommended = data.strategy?.recommended || [];
+  const avoidNow = data.strategy?.avoidNow || [];
+  const watchlist = data.strategy?.watchlist || recommended.slice(3, 6);
+  const allocation = data.strategy?.allocation || {};
 
-  byId("validation-grid").innerHTML = cells.map((cell) => `
-    <article class="validation-card">
-      <div class="status-pill ${cell.cls}">${escapeHtml(cell.label)}</div>
-      <div class="value ${cell.label === "Validation Score" ? "large" : ""}">${escapeHtml(String(cell.value))}</div>
+  byId("recommended-count").textContent = String(recommended.length);
+  byId("avoid-count").textContent = String(avoidNow.length);
+  byId("constraint-tag").textContent = `Sum ${(Object.values(allocation).reduce((sum, value) => sum + Number(value || 0), 0)).toFixed(2)}`;
+
+  byId("recommended-list").innerHTML = recommended.map((item, index) => `
+    <article class="strategy-card">
+      <div class="strategy-top">
+        <div>
+          <div class="strategy-title">${escapeHtml(item.name)}</div>
+          <div class="strategy-copy">${escapeHtml(item.playbookMapping)}</div>
+        </div>
+        <span class="score-pill">Score ${escapeHtml(String(item.strategyScore))}</span>
+      </div>
+      <div class="strategy-meta">
+        <div>
+          <span>Risk Level</span>
+          <strong>${escapeHtml(item.riskLevel)}</strong>
+        </div>
+        <div>
+          <span>Expected Return</span>
+          <strong>${escapeHtml(item.expectedReturn)}</strong>
+        </div>
+        <div>
+          <span>Open Playbook</span>
+          <strong>Top ${index + 1}</strong>
+        </div>
+      </div>
+      <div class="strategy-copy">${escapeHtml(item.playbookMapping)}</div>
+      <div class="strategy-foot">
+        <a class="playbook-link" href="${escapeHtml(item.playbookUrl)}" target="_blank" rel="noreferrer">Option Playbook 열기</a>
+        <span class="band-label">Top Recommended</span>
+      </div>
     </article>
   `).join("");
+
+  byId("avoid-list").innerHTML = avoidNow.map((item, index) => `
+    <article class="strategy-card strategy-card--avoid">
+      <div class="strategy-top">
+        <div>
+          <div class="strategy-title">${escapeHtml(item.name)}</div>
+          <div class="strategy-copy">${escapeHtml(item.rejectReason)}</div>
+        </div>
+        <span class="score-pill score-pill--danger">Avoid ${index + 1}</span>
+      </div>
+      <div class="strategy-meta">
+        <div>
+          <span>Risk Level</span>
+          <strong>${escapeHtml(item.riskLevel)}</strong>
+        </div>
+        <div>
+          <span>Avoid Reason</span>
+          <strong>${escapeHtml(item.rejectReason)}</strong>
+        </div>
+        <div>
+          <span>Open Playbook</span>
+          <strong>${escapeHtml(item.playbookMapping)}</strong>
+        </div>
+      </div>
+      <div class="strategy-foot">
+        <a class="playbook-link" href="${escapeHtml(item.playbookUrl)}" target="_blank" rel="noreferrer">Option Playbook 열기</a>
+        <span class="band-label">Avoid Now</span>
+      </div>
+    </article>
+  `).join("");
+
+  byId("allocation-bars").innerHTML = Object.entries(allocation).map(([name, value]) => `
+    <div class="bar-row">
+      <div class="bar-label">
+        <span>${escapeHtml(name)}</span>
+        <span>${Math.round(Number(value || 0) * 100)}%</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" style="--width:${Math.round(Number(value || 0) * 100)}%"></div>
+      </div>
+    </div>
+  `).join("");
+
+  byId("module2-committee-brief").textContent = data.committee.comment;
+  byId("module2-rationale").innerHTML = (data.confidence?.reasons || []).slice(0, 4).map((reason) => `
+    <div class="brief-line">
+      <strong>${escapeHtml(reason.title)}</strong>
+      <div>${escapeHtml(reason.text)}</div>
+    </div>
+  `).join("");
+
+  byId("watchlist-list").innerHTML = watchlist.map((item, index) => `
+    <article class="strategy-card strategy-card--watchlist">
+      <div class="strategy-top">
+        <div>
+          <div class="strategy-title">${escapeHtml(item.name)}</div>
+          <div class="strategy-copy">${escapeHtml(item.playbookMapping)}</div>
+        </div>
+        <span class="score-pill">Watch ${index + 1}</span>
+      </div>
+      <div class="strategy-meta">
+        <div>
+          <span>Risk Level</span>
+          <strong>${escapeHtml(item.riskLevel)}</strong>
+        </div>
+        <div>
+          <span>Expected Return</span>
+          <strong>${escapeHtml(item.expectedReturn)}</strong>
+        </div>
+        <div>
+          <span>Playbook</span>
+          <strong>${escapeHtml(item.name)}</strong>
+        </div>
+      </div>
+      <div class="strategy-foot">
+        <a class="playbook-link" href="${escapeHtml(item.playbookUrl)}" target="_blank" rel="noreferrer">Option Playbook 열기</a>
+        <span class="band-label">Watchlist</span>
+      </div>
+    </article>
+  `).join("");
+
+  const newsItems = newsState?.allItems || newsState?.topItems || [];
+  const headlineItems = newsItems.slice(0, 3);
+  const reportItems = newsItems.slice(3, 6).length ? newsItems.slice(3, 6) : newsItems.slice(0, 3);
+
+  byId("headline-themes").innerHTML = headlineItems.map((item, index) => `
+    <article class="theme-card">
+      <div class="theme-index">${index + 1}</div>
+      <div class="theme-body">
+        <div class="theme-title">${escapeHtml(item.title)}</div>
+        <div class="theme-meta">
+          <span class="source-tag">${escapeHtml(item.source || "search view")}</span>
+          <span>${escapeHtml(item.publishedAt || data.input.asOf || "")}</span>
+        </div>
+        <div class="theme-keywords">${escapeHtml((item.keywords || []).join(" / ") || data.marketInterpretation)}</div>
+      </div>
+    </article>
+  `).join("");
+
+  byId("report-themes").innerHTML = reportItems.map((item, index) => `
+    <article class="theme-card">
+      <div class="theme-index">${index + 1}</div>
+      <div class="theme-body">
+        <div class="theme-title">${escapeHtml(item.title)}</div>
+        <div class="theme-meta">
+          <span class="source-tag">${escapeHtml(item.source || "report view")}</span>
+          <span>${escapeHtml(item.publishedAt || data.input.asOf || "")}</span>
+        </div>
+        <div class="theme-keywords">${escapeHtml((item.keywords || []).join(" / ") || data.regimeReason)}</div>
+      </div>
+    </article>
+  `).join("");
+
+  const updateSignal = data.attribution.updateSignal || {};
+  byId("module2-validation-notes").innerHTML = [
+    `Status: ${data.validation.status}`,
+    `Validation Score: ${data.validation.score}`,
+    `Risk Warning: ${data.validation.riskWarning}`,
+    `Committee Hint: ${data.committee.recommendation}`,
+    `Production Source: TEST_3`,
+    `Update Signal: ${updateSignal.regime_fit || "n/a"} / ${updateSignal.alpha_source || "n/a"} / ${updateSignal.recommendation || "n/a"}`
+  ].map((text) => `<div class="brief-line">${escapeHtml(text)}</div>`).join("");
+
+  byId("module2-ops-notes").innerHTML = [
+    `As of ${data.input.asOf}`,
+    `Market source: ${data.marketMeta?.source || "Sample / Live"}`,
+    `Volatility: ${Number(data.input.volatility20d || 0).toFixed(1)}%`,
+    `Confidence: ${formatPercent(data.confidence.score * 100, 0)}`,
+    `Advisor base: module2 core snapshot`
+  ].map((text) => `<div class="brief-line">${escapeHtml(text)}</div>`).join("");
+}
+
+function renderValidation(data) {
+  const validation = data.validation;
+  const topStrategy = data.strategy?.recommended?.[0] || null;
+  const updateSignal = data.attribution.updateSignal || {};
+  const checks = validation.marketAlignment?.checks || [];
+  byId("validation-input-panel").innerHTML = `
+    <div class="validation-panel-head">
+      <div>
+        <p class="eyebrow">입력값</p>
+        <h3>Module 2 입력 요약</h3>
+      </div>
+      <span class="count-pill">${escapeHtml(validation.statusLabel || validation.status)}</span>
+    </div>
+
+    <div class="validation-input-grid">
+      <div class="validation-input-item">
+        <span>전략 선택</span>
+        <strong>${escapeHtml(validation.strategyName || topStrategy?.name || "N/A")}</strong>
+        <em>${escapeHtml(topStrategy?.playbookMapping || "Module 2 추천 전략")}</em>
+      </div>
+      <div class="validation-input-item">
+        <span>방향성</span>
+        <strong>${escapeHtml(data.regime?.label || "N/A")}</strong>
+        <em>${escapeHtml(data.marketInterpretation || "시장 해석")}</em>
+      </div>
+      <div class="validation-input-item">
+        <span>변동성</span>
+        <strong>${escapeHtml(Number(data.input?.volatility20d || 0).toFixed(1))}%</strong>
+        <em>${escapeHtml((Number(data.input?.volatility20d || 0) >= 35) ? "High - 높음" : "Normal - 보통")}</em>
+      </div>
+      <div class="validation-input-item">
+        <span>이벤트 리스크</span>
+        <strong>${escapeHtml(String(data.input?.eventRisk || "medium"))}</strong>
+        <em>${escapeHtml(data.input?.eventRisk === "high" ? "이벤트 이후 급변 가능성 높음" : "이벤트 리스크 관리 가능")}</em>
+      </div>
+      <div class="validation-input-item">
+        <span>시장 판단 확신도</span>
+        <strong>${escapeHtml(formatPercent(data.confidence.score * 100, 0))}</strong>
+        <em>${escapeHtml(data.confidence.label || "N/A")}</em>
+      </div>
+      <div class="validation-input-item">
+        <span>전략점수</span>
+        <strong>${escapeHtml(String(validation.strategyScore || topStrategy?.strategyScore || 0))}</strong>
+        <em>${escapeHtml(topStrategy?.riskLevel || validation.riskLevel || "Medium")}</em>
+      </div>
+      <div class="validation-input-item">
+        <span>분류</span>
+        <strong>${escapeHtml(validation.statusLabel || validation.status)}</strong>
+        <em>${escapeHtml(validation.validationTone || "review")}</em>
+      </div>
+      <div class="validation-input-item">
+        <span>백테스트 근거</span>
+        <strong>${validation.backtestAvailable ? "있음" : "없음"}</strong>
+        <em>${escapeHtml(validation.backtestAvailable ? "검증 우위 확인" : "검증 우위 부족")}</em>
+      </div>
+      <div class="validation-input-item">
+        <span>최대손실 제한</span>
+        <strong>${validation.maxLossDefined ? "제한됨" : "미정"}</strong>
+        <em>${escapeHtml(validation.maxLossDefined ? "손실 상한 규정됨" : "무한손실 가능성 점검 필요")}</em>
+      </div>
+      <div class="validation-input-item validation-input-item--wide">
+        <span>데이터 기준</span>
+        <strong>${escapeHtml(data.input?.asOf || data.marketMeta?.asOf || "N/A")}</strong>
+        <em>${escapeHtml(validation.integrationHint?.oneLineForCard || "Module 2 결과를 Module 3로 검증합니다.")}</em>
+      </div>
+    </div>
+
+    <div class="validation-input-foot">
+      ${escapeHtml(validation.beginnerNote || "입력값 요약")}
+    </div>
+  `;
+
+  const resultHeader = validation.status === "PASS" ? "검토 가능" : validation.status === "REVIEW" ? "재검토" : "제외 권고";
+  byId("validation-result-panel").innerHTML = `
+    <div class="validation-panel-head">
+      <div>
+        <p class="eyebrow">Codex 3 검증 결과</p>
+        <h3>${escapeHtml(validation.strategyName || topStrategy?.name || "N/A")}</h3>
+      </div>
+      <span class="status-pill ${validation.status.toLowerCase()}">${escapeHtml(resultHeader)}</span>
+    </div>
+
+    <div class="validation-hero">
+      <div class="validation-hero__title">${escapeHtml(validation.strategyName || topStrategy?.name || "N/A")}</div>
+      <div class="validation-hero__copy">${escapeHtml(validation.comment || validation.riskWarning || "검증 결과를 생성합니다.")}</div>
+    </div>
+
+    <div class="validation-stat-grid">
+      <div class="validation-stat">
+        <span>Risk Level</span>
+        <strong>${escapeHtml(validation.riskLevel || "Medium")}</strong>
+      </div>
+      <div class="validation-stat">
+        <span>Volatility</span>
+        <strong>${escapeHtml(Number(data.input?.volatility20d || 0).toFixed(1))}</strong>
+      </div>
+      <div class="validation-stat">
+        <span>Event Risk</span>
+        <strong>${escapeHtml(String(data.input?.eventRisk || "medium"))}</strong>
+      </div>
+      <div class="validation-stat">
+        <span>Confidence</span>
+        <strong>${escapeHtml(formatPercent(data.confidence.score * 100, 0))}</strong>
+      </div>
+    </div>
+
+    <div class="validation-chip-row">
+      <span class="validation-chip">${escapeHtml(validation.marketAlignment?.checks?.[0]?.note || "시장 정합성")}</span>
+      <span class="validation-chip">${escapeHtml(validation.marketAlignment?.checks?.[1]?.note || "손실 한도")}</span>
+      <span class="validation-chip">${escapeHtml(validation.marketAlignment?.checks?.[2]?.note || "국면 부합도")}</span>
+      <span class="validation-chip">${escapeHtml(validation.riskWarning || "리스크 경고")}</span>
+    </div>
+
+    <div class="validation-summary-box">
+      <div class="validation-summary-box__label">전략 요약</div>
+      <div class="validation-summary-box__text">${escapeHtml(validation.comment || "전략 검증 요약을 표시합니다.")}</div>
+    </div>
+
+    <div class="validation-duo">
+      <article class="validation-info-box">
+        <div class="validation-info-box__title">유리한 상황</div>
+        <div class="validation-info-box__text">${escapeHtml(validation.beginnerNote || "전략이 맞는 상황")}</div>
+      </article>
+      <article class="validation-info-box">
+        <div class="validation-info-box__title">주의할 점</div>
+        <div class="validation-info-box__text">${escapeHtml(validation.riskWarning || "주의 요인")}</div>
+      </article>
+    </div>
+
+    <div class="validation-duo">
+      <article class="validation-info-box">
+        <div class="validation-info-box__title">Codex 2 시장상태 반영</div>
+        <ul class="validation-list">
+          ${checks.map((check) => `<li>${escapeHtml(check.item)}: ${escapeHtml(check.note)}</li>`).join("")}
+        </ul>
+      </article>
+      <article class="validation-info-box">
+        <div class="validation-info-box__title">Codex 1 통합 힌트</div>
+        <ul class="validation-list">
+          <li>${escapeHtml(validation.integrationHint?.targetSlot || "strategy-card-validation")}</li>
+          <li>${escapeHtml(validation.integrationHint?.codex1Action || "전략 카드 하단에 표시")}</li>
+          <li>${escapeHtml(validation.integrationHint?.oneLineForCard || "추가 위험요인을 점검합니다.")}</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="validation-callout">
+      <div class="validation-callout__label">투자위원회 검토 문구</div>
+      <div class="validation-callout__text">${escapeHtml(validation.committeeNote || data.committee?.comment || "검토 코멘트가 없습니다.")}</div>
+    </div>
+
+    <details class="validation-details" open>
+      <summary>초보자용 설명 열기</summary>
+      <div class="validation-details__body">${escapeHtml(validation.beginnerNote || "초보자용 설명이 없습니다.")}</div>
+    </details>
+
+    <div class="validation-foot">
+      <div>
+        <span>Production Source</span>
+        <strong>TEST_3</strong>
+      </div>
+      <div>
+        <span>Update Signal</span>
+        <strong>${escapeHtml(`${updateSignal.regime_fit || "n/a"} / ${updateSignal.alpha_source || "n/a"} / ${updateSignal.recommendation || "n/a"}`)}</strong>
+      </div>
+      <div>
+        <span>Market Fit</span>
+        <strong>${escapeHtml(validation.marketAlignment?.summary || "N/A")}</strong>
+      </div>
+    </div>
+  `;
 }
 
 function renderAttribution(data) {
+  const signalJson = JSON.stringify(data.attribution.updateSignal || {}, null, 2);
   const items = [
     ["Allocation Effect", `${data.attribution.allocationEffect.toFixed(1)}%`],
     ["Selection Effect", `${data.attribution.selectionEffect.toFixed(1)}%`],
     ["Interaction Effect", `${data.attribution.interactionEffect.toFixed(1)}%`],
-    ["Alpha Contribution", `${data.attribution.alphaContribution.toFixed(1)}%`],
-    ["Beta Contribution", `${data.attribution.betaContribution.toFixed(1)}%`],
-    ["Update Signal", data.attribution.updateSignal]
+    ["Alpha Source", `${data.attribution.alphaSource || `${data.attribution.alphaContribution.toFixed(1)}%`}\n${data.attribution.alphaNote || ""}`],
+    ["Beta Source", `${data.attribution.betaSource || `${data.attribution.betaContribution.toFixed(1)}%`}\n${data.attribution.betaNote || ""}`],
+    ["Regime Fit", `${data.attribution.regimeFit?.summary || "미정"}\nFit score ${Number(data.attribution.regimeFit?.score || 0).toFixed(2)}`],
+    ["Micro State", `${data.attribution.postHoc ? `S${data.attribution.postHoc.code} · ${data.attribution.postHoc.cluster}` : "N/A"}\n${data.attribution.postHoc?.label || ""}\n${data.attribution.stressContext || ""}`],
+    ["Update Signal JSON", signalJson]
   ];
 
-  byId("attribution-grid").innerHTML = items.map(([label, value]) => `
+  byId("attribution-grid").innerHTML = items.map(([label, value], index) => `
     <article class="attrib-card">
       <div class="label">${escapeHtml(label)}</div>
-      <div class="value">${escapeHtml(String(value))}</div>
+      <div class="value ${label.includes("JSON") ? "code" : ""}">${escapeHtml(String(value)).replace(/\n/g, "<br/>")}</div>
     </article>
   `).join("");
 }
@@ -355,6 +682,7 @@ function renderMain() {
   renderConfidence(analysis);
   renderModule1Kpis(analysis);
   renderNews(newsState);
+  renderStrategies(analysis);
   renderValidation(analysis);
   renderAttribution(analysis);
   renderCommittee(analysis);

@@ -201,7 +201,10 @@
           <p class="eyebrow">Module 2</p>
           <h2>Option Playbook Advisor</h2>
         </div>
-        <p class="section-note">Top Recommended 9 / Avoid Now 6 / Strategy Score / Risk / Expected Return / Playbook Mapping</p>
+        <div class="module2-head">
+          <p class="section-note">Top Recommended 9 / Avoid Now 6 / Strategy Score / Risk / Expected Return / Playbook Mapping</p>
+          <span class="count-pill" id="constraint-tag">Sum 1.00</span>
+        </div>
       </div>
       <div class="module-grid">
         <article>
@@ -219,6 +222,70 @@
           <div class="card-grid" id="avoid-list"></div>
         </article>
       </div>
+      <div class="allocation-block">
+        <div class="subsection-head">
+          <h3>Risk-Adjusted Allocation Weights</h3>
+          <span class="count-pill">Weights</span>
+        </div>
+        <div class="allocation-bars" id="allocation-bars"></div>
+      </div>
+
+      <div class="advisor-deep-dive">
+        <div class="advisor-grid">
+          <article class="advisor-panel">
+            <div class="subsection-head">
+              <h3>Committee Brief</h3>
+              <span class="count-pill">Codex 1</span>
+            </div>
+            <div class="brief-copy" id="module2-committee-brief"></div>
+            <div class="brief-list" id="module2-rationale"></div>
+          </article>
+
+          <article class="advisor-panel">
+            <div class="subsection-head">
+              <h3>Watchlist 3</h3>
+              <span class="count-pill">Next</span>
+            </div>
+            <div class="card-grid" id="watchlist-list"></div>
+          </article>
+        </div>
+
+        <div class="advisor-grid">
+          <article class="advisor-panel">
+            <div class="subsection-head">
+              <h3>Headline Themes</h3>
+              <span class="count-pill">search view</span>
+            </div>
+            <div class="theme-grid" id="headline-themes"></div>
+          </article>
+
+          <article class="advisor-panel">
+            <div class="subsection-head">
+              <h3>Report Themes</h3>
+              <span class="count-pill">search view</span>
+            </div>
+            <div class="theme-grid" id="report-themes"></div>
+          </article>
+        </div>
+
+        <div class="advisor-grid">
+          <article class="advisor-panel">
+            <div class="subsection-head">
+              <h3>Validation Notes</h3>
+              <span class="count-pill">Codex 3</span>
+            </div>
+            <div class="brief-list" id="module2-validation-notes"></div>
+          </article>
+
+          <article class="advisor-panel">
+            <div class="subsection-head">
+              <h3>Ops Notes</h3>
+              <span class="count-pill">MLOps / DevOps</span>
+            </div>
+            <div class="brief-list" id="module2-ops-notes"></div>
+          </article>
+        </div>
+      </div>
     </section>
 
     <section class="panel" id="module3">
@@ -227,9 +294,12 @@
           <p class="eyebrow">Module 3</p>
           <h2>Codex Validation Lite Agent</h2>
         </div>
-        <p class="section-note">Production source: TEST_3</p>
+        <p class="section-note">Module 2 추천 전략과 시장 상태를 받아 검증 라벨과 상세 근거를 생성합니다.</p>
       </div>
-      <div class="validation-grid" id="validation-grid"></div>
+      <div class="validation-shell">
+        <article class="validation-panel validation-panel--input" id="validation-input-panel"></article>
+        <article class="validation-panel validation-panel--result" id="validation-result-panel"></article>
+      </div>
     </section>
 
     <section class="panel" id="module4">
@@ -238,9 +308,15 @@
           <p class="eyebrow">Module 4</p>
           <h2>Performance Attribution Engine</h2>
         </div>
-        <p class="section-note">Allocation / Selection / Interaction / Alpha / Beta / Update Signal</p>
+        <p class="section-note">Allocation / Selection / Interaction / Regime Fit / Update Signal JSON</p>
       </div>
       <div class="attribution-grid" id="attribution-grid"></div>
+      <div class="module4-legacy-frame" aria-label="원본 성과분해 대시보드">
+        <iframe
+          title="Performance Attribution Engine Original View"
+          src="./performance-attribution-engine.html"
+          loading="lazy"></iframe>
+      </div>
     </section>
 
     <section class="panel" id="committee">

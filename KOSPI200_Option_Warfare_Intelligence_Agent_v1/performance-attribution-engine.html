@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Performance Attribution Engine | 전략 자동 평가</title>
+  <style>
+    :root{
+      --bg:#0a1222;
+      --panel:rgba(15,24,44,.82);
+      --card:rgba(18,28,52,.96);
+      --text:#eef3ff;
+      --muted:#9aabc9;
+      --line:rgba(170,190,255,.18);
+      --accent:#e55a73;
+      --teal:#31c9b2;
+      --blue:#4f7cff;
+      --green:#49d29d;
+      --amber:#f0b84d;
+      --shadow:0 24px 60px rgba(1,6,22,.42);
+      --radius:22px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:
+      radial-gradient(circle at top left,rgba(79,124,255,.22),transparent 32%),
+      radial-gradient(circle at top right,rgba(49,201,178,.12),transparent 28%),
+      linear-gradient(180deg,#09111f 0%,#0b1426 40%,#09111b 100%);
+      color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{padding:24px}
+    .shell{max-width:1500px;margin:0 auto;display:grid;gap:18px}
+    .hero{
+      background:linear-gradient(180deg,rgba(18,28,52,.9),rgba(11,18,34,.9));
+      border:1px solid var(--line);border-radius:30px;padding:24px;box-shadow:var(--shadow);
+      display:grid;gap:18px;backdrop-filter:blur(16px)
+    }
+    .hero-top{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+    .brand{display:grid;gap:10px;max-width:920px}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--accent)}
+    .title{font-size:clamp(30px,4vw,52px);line-height:1.04;margin:0;font-weight:900;letter-spacing:-.04em}
+    .subtitle{margin:0;color:var(--muted);font-size:15px;line-height:1.7;max-width:74ch}
+    .status-row{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--muted)}
+    .pill strong{font-size:12px;color:var(--text)}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
+    .controls{padding:16px;display:grid;gap:14px}
+    .grid-controls{display:grid;grid-template-columns:1.4fr .9fr .7fr .7fr auto;gap:12px}
+    .field{display:grid;gap:7px}
+    .label{font-size:12px;font-weight:800;color:var(--teal);letter-spacing:.04em;text-transform:uppercase}
+    .input,.select,.button{
+      width:100%;border-radius:16px;border:1px solid var(--line);background:rgba(18,28,52,.96);color:var(--text);
+      padding:14px 14px;font:inherit;min-height:48px
+    }
+    .input,.select{background:rgba(18,28,52,.96)}
+    .input:focus,.select:focus{outline:2px solid rgba(79,124,255,.22);border-color:rgba(79,124,255,.6)}
+    .button{cursor:pointer;font-weight:800}
+    .button.primary{background:linear-gradient(135deg,var(--blue),#1849ab);border-color:transparent;color:#fff}
+    .button.secondary{background:rgba(255,255,255,.03);color:var(--text)}
+    .button:hover{transform:translateY(-1px)}
+    .stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+    .breakdown-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .card{
+      background:linear-gradient(180deg,rgba(18,28,52,.96),rgba(10,17,33,.96));
+      border:1px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:10px;min-height:122px
+    }
+    .card.tight{min-height:110px}
+    .metric-name{font-size:12px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:.04em}
+    .metric-value{font-size:28px;font-weight:900;letter-spacing:-.04em}
+    .metric-note{font-size:12px;color:var(--muted);line-height:1.4}
+    .metric-value.small{font-size:24px}
+    .metric-value.positive{color:var(--green)}
+    .metric-value.negative{color:var(--accent)}
+    .metric-value.neutral{color:var(--blue)}
+    .main-grid{display:grid;grid-template-columns:1.28fr .72fr;gap:18px;align-items:start}
+    .section{padding:18px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}
+    .section-title h2{margin:0;font-size:18px;letter-spacing:-.02em}
+    .section-title span{color:var(--muted);font-size:12px;font-weight:700}
+    .chart-box{background:linear-gradient(180deg,rgba(18,28,52,.96),rgba(10,17,33,.96));border:1px solid var(--line);border-radius:20px;padding:14px}
+    .chart{width:100%;height:300px;display:block}
+    .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+    .legend .item{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:700}
+    .dot{width:10px;height:10px;border-radius:999px;background:var(--blue)}
+    .dot.loss{background:var(--accent)}
+    .dot.neutral{background:var(--muted)}
+    .stack{display:grid;gap:12px}
+    .info-grid{display:grid;gap:10px}
+    .info-row{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid rgba(214,217,220,.8)}
+    .info-row:last-child{border-bottom:0}
+    .info-key{font-size:12px;font-weight:800;color:#59636e;text-transform:uppercase;letter-spacing:.04em}
+    .info-val{font-size:14px;line-height:1.6;color:var(--text)}
+    .contribution-list{display:grid;gap:12px}
+    .contribution-item{display:grid;gap:8px;padding:2px 0 12px;border-bottom:1px solid rgba(214,217,220,.8)}
+    .contribution-item:last-child{border-bottom:0;padding-bottom:0}
+    .contribution-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .contribution-name{font-size:14px;font-weight:900;color:var(--text);line-height:1.35}
+    .contribution-sub{font-size:12px;color:var(--muted);margin-top:4px}
+    .contribution-value{font-size:14px;font-weight:900;white-space:nowrap}
+    .bar-track{height:12px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+    .bar-fill{height:100%;border-radius:999px}
+    .bar-fill.win{background:linear-gradient(90deg,var(--green),#6ec28a)}
+    .bar-fill.loss{background:linear-gradient(90deg,var(--accent),#ee8076)}
+    .bar-fill.neutral{background:linear-gradient(90deg,var(--blue),#7ea2ff)}
+    .contribution-foot{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:18px;background:rgba(18,28,52,.96)}
+    table{width:100%;border-collapse:collapse;min-width:980px}
+    thead th{position:sticky;top:0;background:rgba(21,33,60,.98);color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:14px;border-bottom:1px solid var(--line)}
+    tbody td{padding:13px 14px;border-bottom:1px solid rgba(170,190,255,.12);font-size:13px;vertical-align:top}
+    tbody tr:hover{background:rgba(255,255,255,.02)}
+    .chip{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800}
+    .chip.win{background:rgba(73,210,157,.12);color:#8ff0c4}
+    .chip.loss{background:rgba(229,90,115,.12);color:#ffb1bf}
+    .chip.flat{background:rgba(193,199,208,.12);color:var(--muted)}
+    .hint{color:var(--muted);font-size:12px;line-height:1.55}
+    .error{padding:14px 16px;background:rgba(214,75,58,.08);border:1px solid rgba(214,75,58,.25);border-radius:16px;color:#8d2f24;font-size:13px;line-height:1.6}
+    .empty{padding:26px;text-align:center;color:var(--muted);font-size:14px}
+    .tagbar{display:flex;flex-wrap:wrap;gap:8px}
+    .tag{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--text)}
+    @media (max-width:1180px){
+      .grid-controls{grid-template-columns:1fr 1fr}
+      .grid-controls .span-2{grid-column:span 2}
+      .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .main-grid{grid-template-columns:1fr}
+    }
+    @media (max-width:760px){
+      body{padding:14px}
+      .hero,.section{padding:16px}
+      .stats{grid-template-columns:1fr 1fr}
+      .grid-controls{grid-template-columns:1fr}
+      .grid-controls .span-2{grid-column:auto}
+      .info-row{grid-template-columns:1fr}
+      .metric-value{font-size:24px}
+      .title{font-size:28px}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero panel">
+      <div class="hero-top">
+        <div class="brand">
+          <div class="eyebrow">Performance Attribution Engine</div>
+          <h1 class="title">랜덤 전략 자동 평가 대시보드</h1>
+          <p class="subtitle">
+            외부 전략 플레이북을 그대로 읽어와서 랜덤 또는 지정 전략을 선택하고, 원하는 기간의 백테스트 결과를 자동으로 집계합니다.
+            원본 사이트는 건드리지 않고, 이 화면에서만 평가와 해석을 진행합니다.
+          </p>
+          <div class="status-row">
+            <span class="pill"><strong>Source</strong> <span id="sourceHost">-</span></span>
+            <span class="pill"><strong>Strategy</strong> <span id="currentStrategy">-</span></span>
+            <span class="pill"><strong>Range</strong> <span id="currentRange">-</span></span>
+          </div>
+        </div>
+        <div class="tagbar" aria-label="핵심 태그">
+          <span class="tag">자동 수집</span>
+          <span class="tag">기간 필터</span>
+          <span class="tag">성과 기여도</span>
+          <span class="tag">트레이드 로그</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel controls">
+      <div class="grid-controls">
+        <div class="field span-2">
+          <div class="label">전략 원본 URL</div>
+          <input id="sourceUrl" class="input" type="url" value="https://bitter-morning-77fd.jager001.workers.dev/" />
+        </div>
+        <div class="field">
+          <div class="label">전략 선택</div>
+          <select id="strategySelect" class="select"></select>
+        </div>
+        <div class="field">
+          <div class="label">시작일</div>
+          <input id="startDate" class="input" type="date" />
+        </div>
+        <div class="field">
+          <div class="label">종료일</div>
+          <input id="endDate" class="input" type="date" />
+        </div>
+        <div class="field" style="align-self:end">
+          <button id="randomBtn" class="button secondary">랜덤 전략</button>
+        </div>
+        <div class="field" style="align-self:end">
+          <button id="reloadBtn" class="button secondary">원본 다시 읽기</button>
+        </div>
+        <div class="field" style="align-self:end">
+          <button id="evaluateBtn" class="button primary">평가 실행</button>
+        </div>
+      </div>
+      <div id="statusBox" class="hint">원본을 불러오는 중입니다.</div>
+    </section>
+
+    <section class="stats" id="metricGrid">
+      <div class="card"><div class="metric-name">총 거래 수</div><div class="metric-value" id="metricTrades">-</div><div class="metric-note">선택 기간 내 체결된 트레이드 수</div></div>
+      <div class="card"><div class="metric-name">승률</div><div class="metric-value" id="metricWinRate">-</div><div class="metric-note">손익이 0보다 큰 거래 비중</div></div>
+      <div class="card"><div class="metric-name">누적 PnL</div><div class="metric-value" id="metricTotalPnl">-</div><div class="metric-note">선택 기간 내 손익 합계</div></div>
+      <div class="card"><div class="metric-name">평균 PnL</div><div class="metric-value" id="metricAvgPnl">-</div><div class="metric-note">거래 1건당 평균 손익</div></div>
+      <div class="card"><div class="metric-name">Profit Factor</div><div class="metric-value" id="metricPf">-</div><div class="metric-note">이익 합 / 손실 합</div></div>
+      <div class="card"><div class="metric-name">최대 낙폭</div><div class="metric-value" id="metricMdd">-</div><div class="metric-note">누적 손익 기준 최대 하락폭</div></div>
+    </section>
+
+    <section class="panel section">
+      <div class="section-title">
+        <h2>수익분해 카드</h2>
+        <span id="breakdownMeta">선택 기간 기준</span>
+      </div>
+      <div class="breakdown-grid">
+        <div class="card tight">
+          <div class="metric-name">Allocation</div>
+          <div class="metric-value small positive" id="breakdownAllocation">-</div>
+          <div class="metric-note" id="breakdownAllocationNote">레짐 타이밍 및 위험 자본 배분</div>
+        </div>
+        <div class="card tight">
+          <div class="metric-name">Selection</div>
+          <div class="metric-value small negative" id="breakdownSelection">-</div>
+          <div class="metric-note" id="breakdownSelectionNote">48대 Playbook 구조 및 행사가 타점 선택</div>
+        </div>
+        <div class="card tight">
+          <div class="metric-name">Interaction</div>
+          <div class="metric-value small neutral" id="breakdownInteraction">-</div>
+          <div class="metric-note" id="breakdownInteractionNote">배분과 선택의 전술적 시너지</div>
+        </div>
+        <div class="card tight">
+          <div class="metric-name">승률/패률</div>
+          <div class="metric-value small" id="breakdownWinLossRate">-</div>
+          <div class="metric-note">선택 기간 거래의 승패 비중</div>
+        </div>
+        <div class="card tight">
+          <div class="metric-name">최고 거래</div>
+          <div class="metric-value small positive" id="breakdownBestTrade">-</div>
+          <div class="metric-note" id="breakdownBestTradeNote">-</div>
+        </div>
+        <div class="card tight">
+          <div class="metric-name">최저 거래</div>
+          <div class="metric-value small negative" id="breakdownWorstTrade">-</div>
+          <div class="metric-note" id="breakdownWorstTradeNote">-</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <div class="stack">
+        <div class="panel section">
+          <div class="section-title">
+            <h2>성과 곡선</h2>
+            <span id="curveMeta">평가 전</span>
+          </div>
+          <div class="chart-box">
+            <svg id="equityChart" class="chart" viewBox="0 0 920 300" preserveAspectRatio="none" role="img" aria-label="누적 손익 차트"></svg>
+            <div class="legend">
+              <span class="item"><span class="dot"></span>누적 손익</span>
+              <span class="item"><span class="dot loss"></span>손실 구간</span>
+              <span class="item"><span class="dot neutral"></span>기준선</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel section">
+          <div class="section-title">
+            <h2>트레이드 로그</h2>
+            <span id="tradeMeta">0건</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Entry</th>
+                  <th>Exit</th>
+                  <th>Result</th>
+                  <th>PnL</th>
+                  <th>Strike / 구조</th>
+                  <th>보조 메모</th>
+                </tr>
+              </thead>
+              <tbody id="tradeBody">
+                <tr><td colspan="6" class="empty">원본 전략을 불러오면 여기에 평가된 거래가 표시됩니다.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <aside class="stack">
+        <div class="panel section">
+          <div class="section-title">
+            <h2>전략 요약</h2>
+            <span>원본 메타</span>
+          </div>
+          <div class="info-grid" id="strategyInfo">
+            <div class="empty">전략 정보를 불러오는 중입니다.</div>
+          </div>
+        </div>
+
+        <div class="panel section">
+          <div class="section-title">
+            <h2>평가 해석</h2>
+            <span>자동 생성</span>
+          </div>
+          <div class="info-grid">
+            <div class="info-row">
+              <div class="info-key">해석 포인트</div>
+              <div class="info-val" id="interpretationText">기간과 전략을 선택하면 자동으로 성과 해석을 표시합니다.</div>
+            </div>
+            <div class="info-row">
+              <div class="info-key">경고 신호</div>
+              <div class="info-val" id="riskText">거래가 적거나 낙폭이 큰 경우 전략 품질을 보수적으로 봅니다.</div>
+            </div>
+            <div class="info-row">
+              <div class="info-key">비고</div>
+              <div class="info-val">원본 사이트는 그대로 유지하고, 이 화면만 평가 로직을 추가합니다.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel section">
+          <div class="section-title">
+            <h2>전략별 수익기여도</h2>
+            <span id="contributionMeta">전체 전략 비교</span>
+          </div>
+          <div class="contribution-list" id="contributionList">
+            <div class="empty">전략별 기여도가 계산되면 여기에 표시됩니다.</div>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const DEFAULT_SOURCE = 'https://bitter-morning-77fd.jager001.workers.dev/';
+    const API_ORIGIN = location.protocol === 'file:' ? 'https://option-rho.vercel.app' : location.origin;
+    const PROXY_ENDPOINT = `${API_ORIGIN}/api/proxy?url=`;
+    const state = {
+      sourceUrl: DEFAULT_SOURCE,
+      playbookData: null,
+      backtestData: null,
+      strategies: [],
+      selectedSlug: '',
+      selectedStrategy: null,
+      selectedRows: [],
+      rawRows: []
+    };
+
+    const els = {
+      sourceHost: document.getElementById('sourceHost'),
+      currentStrategy: document.getElementById('currentStrategy'),
+      currentRange: document.getElementById('currentRange'),
+      sourceUrl: document.getElementById('sourceUrl'),
+      strategySelect: document.getElementById('strategySelect'),
+      startDate: document.getElementById('startDate'),
+      endDate: document.getElementById('endDate'),
+      randomBtn: document.getElementById('randomBtn'),
+      reloadBtn: document.getElementById('reloadBtn'),
+      evaluateBtn: document.getElementById('evaluateBtn'),
+      statusBox: document.getElementById('statusBox'),
+      metricTrades: document.getElementById('metricTrades'),
+      metricWinRate: document.getElementById('metricWinRate'),
+      metricTotalPnl: document.getElementById('metricTotalPnl'),
+      metricAvgPnl: document.getElementById('metricAvgPnl'),
+      metricPf: document.getElementById('metricPf'),
+      metricMdd: document.getElementById('metricMdd'),
+      breakdownMeta: document.getElementById('breakdownMeta'),
+      breakdownAllocation: document.getElementById('breakdownAllocation'),
+      breakdownAllocationNote: document.getElementById('breakdownAllocationNote'),
+      breakdownSelection: document.getElementById('breakdownSelection'),
+      breakdownSelectionNote: document.getElementById('breakdownSelectionNote'),
+      breakdownInteraction: document.getElementById('breakdownInteraction'),
+      breakdownInteractionNote: document.getElementById('breakdownInteractionNote'),
+      breakdownWinLossRate: document.getElementById('breakdownWinLossRate'),
+      breakdownBestTrade: document.getElementById('breakdownBestTrade'),
+      breakdownBestTradeNote: document.getElementById('breakdownBestTradeNote'),
+      breakdownWorstTrade: document.getElementById('breakdownWorstTrade'),
+      breakdownWorstTradeNote: document.getElementById('breakdownWorstTradeNote'),
+      curveMeta: document.getElementById('curveMeta'),
+      tradeMeta: document.getElementById('tradeMeta'),
+      tradeBody: document.getElementById('tradeBody'),
+      strategyInfo: document.getElementById('strategyInfo'),
+      interpretationText: document.getElementById('interpretationText'),
+      riskText: document.getElementById('riskText'),
+      contributionMeta: document.getElementById('contributionMeta'),
+      contributionList: document.getElementById('contributionList'),
+      equityChart: document.getElementById('equityChart')
+    };
+
+    function slugify(value) {
+      return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    function fmtNum(value, digits = 2) {
+      if (!Number.isFinite(value)) return '-';
+      return new Intl.NumberFormat('ko-KR', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      }).format(value);
+    }
+
+    function fmtPct(value) {
+      if (!Number.isFinite(value)) return '-';
+      return `${fmtNum(value * 100, 1)}%`;
+    }
+
+    function fmtDate(value) {
+      if (!value) return '-';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function parseDate(value) {
+      if (!value) return null;
+      const raw = String(value).trim();
+      const normalized = raw.includes('/') ? raw.replace(/\//g, '-') : raw;
+      const d = new Date(normalized);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function getHashSlug() {
+      const hash = location.hash || '';
+      const match = hash.match(/#strategy\/([^/?]+)/i);
+      return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    function normalizeStrategies(data) {
+      const list = Array.isArray(data?.strategies) ? data.strategies : Object.values(data?.strategies || {});
+      return list.map((item, index) => {
+        const slug = slugify(item.slug || item.id || item.key || item.name || item.title || `strategy-${index + 1}`);
+        return {
+          ...item,
+          slug,
+          title: item.title || item.name || item.label || slug,
+          description: item.description || item.summary || item.note || '',
+          tags: Array.isArray(item.tags) ? item.tags : []
+        };
+      }).filter((item) => item.slug);
+    }
+
+    function normalizeRows(rows) {
+      return (Array.isArray(rows) ? rows : []).map((row, index) => {
+        const entryDate = row.entryDate || row.entry_date || row.openDate || row.date || row.entry || '';
+        const exitDate = row.exitDate || row.exit_date || row.closeDate || row.close || '';
+        const pnl = Number(row.pnl ?? row.profitLoss ?? row.profit_loss ?? row.return ?? 0);
+        return {
+          ...row,
+          __index: index,
+          entryDate,
+          exitDate,
+          pnl: Number.isFinite(pnl) ? pnl : 0,
+          result: row.result || row.outcome || (pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'flat'),
+          strikeSummary: row.strikeSummary || row.strike_summary || row.structure || row.strategy || '',
+          memo: row.memo || row.note || row.comment || row.context || ''
+        };
+      });
+    }
+
+    function extractBalancedObject(source, marker) {
+      const start = source.indexOf(marker);
+      if (start < 0) return null;
+      let i = source.indexOf('{', start);
+      if (i < 0) return null;
+      let depth = 0;
+      let inString = false;
+      let stringQuote = '';
+      let escaped = false;
+      let inLineComment = false;
+      let inBlockComment = false;
+      for (; i < source.length; i++) {
+        const ch = source[i];
+        const next = source[i + 1];
+        if (inLineComment) {
+          if (ch === '\n') inLineComment = false;
+          continue;
+        }
+        if (inBlockComment) {
+          if (ch === '*' && next === '/') {
+            inBlockComment = false;
+            i++;
+          }
+          continue;
+        }
+        if (inString) {
+          if (escaped) {
+            escaped = false;
+            continue;
+          }
+          if (ch === '\\') {
+            escaped = true;
+            continue;
+          }
+          if (ch === stringQuote) {
+            inString = false;
+            stringQuote = '';
+          }
+          continue;
+        }
+        if (ch === '/' && next === '/') {
+          inLineComment = true;
+          i++;
+          continue;
+        }
+        if (ch === '/' && next === '*') {
+          inBlockComment = true;
+          i++;
+          continue;
+        }
+        if (ch === '"' || ch === "'" || ch === '`') {
+          inString = true;
+          stringQuote = ch;
+          continue;
+        }
+        if (ch === '{') depth++;
+        if (ch === '}') {
+          depth--;
+          if (depth === 0) return source.slice(source.indexOf('{', start), i + 1);
+        }
+      }
+      return null;
+    }
+
+    function parsePlaybook(html) {
+      const playbookText = extractBalancedObject(html, 'const playbookData =');
+      const backtestText = extractBalancedObject(html, 'const playbookBacktestData =');
+      if (!playbookText || !backtestText) {
+        throw new Error('원본 데이터 블록을 찾지 못했습니다.');
+      }
+      const playbookData = Function('"use strict"; return (' + playbookText + ');')();
+      const backtestData = Function('"use strict"; return (' + backtestText + ');')();
+      return { playbookData, backtestData };
+    }
+
+    function chooseRandomStrategy(list) {
+      if (!list.length) return '';
+      return list[Math.floor(Math.random() * list.length)].slug;
+    }
+
+    function rowsForSlug(slug) {
+      const rows = state.backtestData?.[slug]?.rows || state.backtestData?.[slug]?.data || [];
+      return normalizeRows(rows);
+    }
+
+    function getStrategyBySlug(slug) {
+      return state.strategies.find((item) => item.slug === slug) || null;
+    }
+
+    function renderStrategyOptions() {
+      const selected = state.selectedSlug || chooseRandomStrategy(state.strategies);
+      els.strategySelect.innerHTML = state.strategies.map((strategy) => {
+        const label = strategy.title || strategy.slug;
+        return `<option value="${strategy.slug}">${label}</option>`;
+      }).join('');
+      els.strategySelect.value = selected;
+      state.selectedSlug = selected;
+      updateStrategySelection(selected, { preserveDates: true });
+    }
+
+    function updateStrategySelection(slug, options = {}) {
+      const strategy = getStrategyBySlug(slug) || state.strategies[0] || null;
+      if (!strategy) return;
+      state.selectedSlug = strategy.slug;
+      state.selectedStrategy = strategy;
+      state.rawRows = rowsForSlug(strategy.slug);
+      const rows = state.rawRows.slice().sort((a, b) => {
+        const ad = parseDate(a.entryDate)?.getTime() || 0;
+        const bd = parseDate(b.entryDate)?.getTime() || 0;
+        return ad - bd;
+      });
+      const first = rows[0];
+      const last = rows[rows.length - 1];
+      const minDate = first?.entryDate ? fmtDate(first.entryDate) : '';
+      const maxDate = last?.entryDate ? fmtDate(last.entryDate) : '';
+      if (!options.preserveDates && minDate && maxDate) {
+        els.startDate.value = minDate;
+        els.endDate.value = maxDate;
+      }
+      els.currentStrategy.textContent = strategy.title || strategy.slug;
+      els.statusBox.textContent = strategy.description || '선택한 전략의 백테스트 데이터를 불러왔습니다.';
+      renderStrategyInfo(strategy, rows);
+      if (!options.preserveDates && rows.length) {
+        if (!els.startDate.value) els.startDate.value = minDate;
+        if (!els.endDate.value) els.endDate.value = maxDate;
+      }
+      evaluate();
+    }
+
+    function renderStrategyInfo(strategy, rows) {
+      const meta = [
+        ['전략명', strategy.title || strategy.slug],
+        ['설명', strategy.description || '원본 설명이 없습니다.'],
+        ['슬러그', strategy.slug],
+        ['원본 거래 수', rows.length.toLocaleString('ko-KR')],
+        ['태그', strategy.tags.length ? strategy.tags.join(', ') : '없음']
+      ];
+      els.strategyInfo.innerHTML = meta.map(([key, value]) => `
+        <div class="info-row">
+          <div class="info-key">${key}</div>
+          <div class="info-val">${escapeHtml(value)}</div>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[ch]));
+    }
+
+    function filterRows(rows, start, end) {
+      const startTime = start ? parseDate(start)?.getTime() : null;
+      const endTime = end ? parseDate(end)?.getTime() : null;
+      return rows.filter((row) => {
+        const d = parseDate(row.entryDate);
+        if (!d) return false;
+        const t = d.getTime();
+        if (startTime !== null && t < startTime) return false;
+        if (endTime !== null && t > endTime + 24 * 3600 * 1000 - 1) return false;
+        return true;
+      });
+    }
+
+    function computeStats(rows) {
+      const total = rows.length;
+      const wins = rows.filter((r) => r.pnl > 0).length;
+      const losses = rows.filter((r) => r.pnl < 0).length;
+      const flat = total - wins - losses;
+      const totalPnl = rows.reduce((sum, row) => sum + row.pnl, 0);
+      const avgPnl = total ? totalPnl / total : 0;
+      const winRate = total ? wins / total : 0;
+      const positive = rows.filter((r) => r.pnl > 0).reduce((sum, row) => sum + row.pnl, 0);
+      const negative = rows.filter((r) => r.pnl < 0).reduce((sum, row) => sum + Math.abs(row.pnl), 0);
+      const profitFactor = negative ? positive / negative : (positive > 0 ? Infinity : 0);
+      let equity = 0;
+      let peak = 0;
+      let maxDrawdown = 0;
+      const curve = [];
+      rows.forEach((row) => {
+        equity += row.pnl;
+        curve.push(equity);
+        peak = Math.max(peak, equity);
+        maxDrawdown = Math.max(maxDrawdown, peak - equity);
+      });
+      const best = rows.reduce((acc, row) => !acc || row.pnl > acc.pnl ? row : acc, null);
+      const worst = rows.reduce((acc, row) => !acc || row.pnl < acc.pnl ? row : acc, null);
+      const holdingDays = rows.map((row) => {
+        const a = parseDate(row.entryDate);
+        const b = parseDate(row.exitDate);
+        return a && b ? Math.max(0, Math.round((b - a) / 86400000)) : null;
+      }).filter((value) => value !== null);
+      const avgHold = holdingDays.length ? holdingDays.reduce((a, b) => a + b, 0) / holdingDays.length : 0;
+      return { total, wins, losses, flat, totalPnl, avgPnl, winRate, profitFactor, maxDrawdown, curve, best, worst, avgHold };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function computeMovePct(row) {
+      if (!Number.isFinite(row.entryClose) || !Number.isFinite(row.exitClose) || row.entryClose === 0) return 0;
+      return ((row.exitClose - row.entryClose) / row.entryClose) * 100;
+    }
+
+    function classifyStrategyFamily(strategy) {
+      const source = `${strategy?.archetype || ''} ${strategy?.slug || ''} ${strategy?.title || ''} ${strategy?.outlook || ''} ${strategy?.riskReturn || ''}`.toLowerCase();
+      if (source.includes('bull') || source.includes('upconvex') || source.includes('up vol') || source.includes('상승')) return 'bull';
+      if (source.includes('bear') || source.includes('downconvex') || source.includes('하락') || source.includes('short')) return 'bear';
+      if (source.includes('vol') || source.includes('straddle') || source.includes('strangle')) return 'vol';
+      if (source.includes('range') || source.includes('condor') || source.includes('iron') || source.includes('butterfly') || source.includes('tent')) return 'range';
+      if (source.includes('calendar') || source.includes('carry') || source.includes('ratio') || source.includes('ladder') || source.includes('seagull') || source.includes('fence') || source.includes('collar') || source.includes('protective')) return 'carry';
+      return 'other';
+    }
+
+    function computeAllocationSignal(row, strategy) {
+      const movePct = computeMovePct(row);
+      const sigma = Number(row.sigma || 0);
+      const family = classifyStrategyFamily(strategy);
+      let base = 0;
+      if (family === 'bull') base = movePct / 10;
+      else if (family === 'bear') base = -movePct / 10;
+      else if (family === 'vol') base = (Math.abs(movePct) - 2) / 6;
+      else if (family === 'range') base = (4 - Math.abs(movePct)) / 4;
+      else if (family === 'carry') base = ((2 - Math.abs(movePct)) / 2) + ((20 - sigma) / 60);
+      else base = movePct / 12;
+      const capitalFactor = 1 + clamp(sigma / 90, 0, 0.35);
+      return clamp(base * capitalFactor, -1.5, 1.5);
+    }
+
+    function computeRevenueBreakdown(rows, metrics, strategy) {
+      const selectedFamily = classifyStrategyFamily(strategy);
+      const grossProfit = rows.filter((r) => r.pnl > 0).reduce((sum, row) => sum + row.pnl, 0);
+      const grossLoss = rows.filter((r) => r.pnl < 0).reduce((sum, row) => sum + Math.abs(row.pnl), 0);
+      const winRate = metrics.total ? metrics.wins / metrics.total : 0;
+      const lossRate = metrics.total ? metrics.losses / metrics.total : 0;
+      const best = metrics.best;
+      const worst = metrics.worst;
+      const allocationSignal = rows.length
+        ? rows.reduce((sum, row) => sum + computeAllocationSignal(row, strategy), 0) / rows.length
+        : 0;
+      const allocationEffect = metrics.totalPnl * allocationSignal;
+
+      const familyPeers = state.strategies.filter((item) => classifyStrategyFamily(item) === selectedFamily);
+      const familyPeerRows = familyPeers.flatMap((peer) => filterRows(rowsForSlug(peer.slug), els.startDate.value, els.endDate.value));
+      const familyPeerTotal = familyPeerRows.reduce((sum, row) => sum + Number(row.pnl || 0), 0);
+      const familyPeerTrades = familyPeerRows.length || 1;
+      const familyPeerAvg = familyPeerTotal / familyPeerTrades;
+      const selectionEffect = metrics.totalPnl - (familyPeerAvg * metrics.total);
+      const interactionEffect = metrics.totalPnl - allocationEffect - selectionEffect;
+      const interactionSignal = metrics.totalPnl ? interactionEffect / Math.abs(metrics.totalPnl) : 0;
+
+      return {
+        allocationEffect,
+        allocationSignal,
+        selectionEffect,
+        selectionSignal: metrics.total ? selectionEffect / Math.abs(metrics.totalPnl || 1) : 0,
+        interactionEffect,
+        interactionSignal,
+        grossProfit,
+        grossLoss,
+        winRate,
+        lossRate,
+        best,
+        worst,
+        familyPeerAvg,
+        familyPeerTrades,
+        familyPeers: familyPeers.length
+      };
+    }
+
+    function computeStrategyContributions(start, end) {
+      const rowsByStrategy = state.strategies.map((strategy) => {
+        const rows = rowsForSlug(strategy.slug).slice().sort((a, b) => {
+          const ad = parseDate(a.entryDate)?.getTime() || 0;
+          const bd = parseDate(b.entryDate)?.getTime() || 0;
+          return ad - bd;
+        });
+        const filtered = filterRows(rows, start, end);
+        const metrics = computeStats(filtered);
+        return {
+          slug: strategy.slug,
+          title: strategy.title || strategy.slug,
+          totalPnl: metrics.totalPnl,
+          winRate: metrics.winRate,
+          total: metrics.total,
+          best: metrics.best,
+          worst: metrics.worst
+        };
+      }).filter((item) => item.total > 0);
+
+      const totalAbs = rowsByStrategy.reduce((sum, row) => sum + Math.abs(row.totalPnl), 0) || 1;
+      const maxAbs = rowsByStrategy.reduce((max, row) => Math.max(max, Math.abs(row.totalPnl)), 0) || 1;
+      return rowsByStrategy
+        .sort((a, b) => Math.abs(b.totalPnl) - Math.abs(a.totalPnl))
+        .slice(0, 8)
+        .map((row) => ({
+          ...row,
+          share: Math.abs(row.totalPnl) / totalAbs,
+          width: Math.abs(row.totalPnl) / maxAbs
+        }));
+    }
+
+    function renderMetrics(metrics) {
+      els.metricTrades.textContent = metrics.total.toLocaleString('ko-KR');
+      els.metricWinRate.textContent = fmtPct(metrics.winRate);
+      els.metricTotalPnl.textContent = fmtNum(metrics.totalPnl, 2);
+      els.metricAvgPnl.textContent = fmtNum(metrics.avgPnl, 2);
+      els.metricPf.textContent = Number.isFinite(metrics.profitFactor) ? fmtNum(metrics.profitFactor, 2) : '∞';
+      els.metricMdd.textContent = fmtNum(metrics.maxDrawdown, 2);
+      els.tradeMeta.textContent = `${metrics.total.toLocaleString('ko-KR')}건`;
+      els.currentRange.textContent = `${fmtDate(els.startDate.value)} ~ ${fmtDate(els.endDate.value)}`;
+      els.curveMeta.textContent = metrics.total ? `평균 보유 ${fmtNum(metrics.avgHold, 1)}일` : '해당 기간 거래 없음';
+      els.interpretationText.textContent = metrics.total
+        ? `총 ${metrics.total}건 중 승률 ${fmtPct(metrics.winRate)}, 누적 PnL ${fmtNum(metrics.totalPnl, 2)}입니다.`
+        : '선택 기간에 포함되는 거래가 없습니다.';
+      els.riskText.textContent = metrics.maxDrawdown > 0
+        ? `최대 낙폭 ${fmtNum(metrics.maxDrawdown, 2)}가 확인되어, 손익 변동성이 있는 전략입니다.`
+        : '낙폭이 확인되지 않았습니다. 거래 수가 너무 적을 수 있습니다.';
+    }
+
+    function renderRevenueBreakdown(rows, metrics) {
+      const breakdown = computeRevenueBreakdown(rows, metrics, state.selectedStrategy || state.strategies[0] || null);
+      els.breakdownMeta.textContent = `거래 ${metrics.total.toLocaleString('ko-KR')}건`;
+      els.breakdownAllocation.textContent = fmtNum(breakdown.allocationEffect, 2);
+      els.breakdownAllocationNote.textContent = `레짐 적합도 ${fmtPct((breakdown.allocationSignal + 1) / 2)} · 방향/변동성 정합성`;
+      els.breakdownSelection.textContent = fmtNum(breakdown.selectionEffect, 2);
+      els.breakdownSelectionNote.textContent = `유사 플레이북 ${breakdown.familyPeers}개 중 평균 대비 ${fmtNum(breakdown.familyPeerAvg, 2)}`;
+      els.breakdownInteraction.textContent = fmtNum(breakdown.interactionEffect, 2);
+      els.breakdownInteractionNote.textContent = `배분×선택 상호작용 ${fmtPct((breakdown.interactionSignal + 1) / 2)} · 잔차`;
+      els.breakdownBestTrade.textContent = breakdown.best ? fmtNum(breakdown.best.pnl, 2) : '-';
+      els.breakdownBestTradeNote.textContent = breakdown.best
+        ? `${fmtDate(breakdown.best.entryDate)} → ${fmtDate(breakdown.best.exitDate)}`
+        : '-';
+      els.breakdownWorstTrade.textContent = breakdown.worst ? fmtNum(breakdown.worst.pnl, 2) : '-';
+      els.breakdownWorstTradeNote.textContent = breakdown.worst
+        ? `${fmtDate(breakdown.worst.entryDate)} → ${fmtDate(breakdown.worst.exitDate)}`
+        : '-';
+      els.breakdownWinLossRate.textContent = `${fmtPct(breakdown.winRate)} / ${fmtPct(breakdown.lossRate)}`;
+    }
+
+    function renderStrategyContributions(start, end) {
+      const items = computeStrategyContributions(start, end);
+      els.contributionMeta.textContent = `${state.strategies.length.toLocaleString('ko-KR')}개 전략`;
+      if (!items.length) {
+        els.contributionList.innerHTML = '<div class="empty">선택 기간에 해당하는 전략 성과가 없습니다.</div>';
+        return;
+      }
+      els.contributionList.innerHTML = items.map((item) => {
+        const signClass = item.totalPnl > 0 ? 'win' : item.totalPnl < 0 ? 'loss' : 'neutral';
+        const pct = fmtPct(item.share);
+        const valueLabel = item.totalPnl > 0 ? '+' + fmtNum(item.totalPnl, 2) : fmtNum(item.totalPnl, 2);
+        const subtitle = `${item.total.toLocaleString('ko-KR')}건 · 승률 ${fmtPct(item.winRate)}`;
+        return `
+          <div class="contribution-item">
+            <div class="contribution-head">
+              <div>
+                <div class="contribution-name">${escapeHtml(item.title)}</div>
+                <div class="contribution-sub">${subtitle}</div>
+              </div>
+              <div class="contribution-value">${valueLabel} <span style="color:var(--muted);font-weight:700">${pct}</span></div>
+            </div>
+            <div class="bar-track" aria-hidden="true">
+              <div class="bar-fill ${signClass}" style="width:${Math.max(4, item.width * 100)}%"></div>
+            </div>
+            <div class="contribution-foot">
+              <span>${escapeHtml(item.slug)}</span>
+              <span>${item.totalPnl > 0 ? '기여도 상승' : item.totalPnl < 0 ? '기여도 하락' : '중립'}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTable(rows) {
+      if (!rows.length) {
+        els.tradeBody.innerHTML = '<tr><td colspan="6" class="empty">선택 기간에 해당하는 거래가 없습니다.</td></tr>';
+        return;
+      }
+      els.tradeBody.innerHTML = rows.map((row) => {
+        const cls = row.pnl > 0 ? 'win' : row.pnl < 0 ? 'loss' : 'flat';
+        const chip = row.pnl > 0 ? 'WIN' : row.pnl < 0 ? 'LOSS' : 'FLAT';
+        return `
+          <tr>
+            <td>${escapeHtml(fmtDate(row.entryDate))}</td>
+            <td>${escapeHtml(fmtDate(row.exitDate))}</td>
+            <td><span class="chip ${cls}">${chip}</span></td>
+            <td>${fmtNum(row.pnl, 2)}</td>
+            <td>${escapeHtml(row.strikeSummary || '-')}</td>
+            <td>${escapeHtml(row.memo || row.result || '-')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderChart(curve) {
+      const svg = els.equityChart;
+      const w = 920;
+      const h = 300;
+      const pad = { top: 20, right: 22, bottom: 30, left: 48 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+      const min = curve.length ? Math.min(0, ...curve) : 0;
+      const max = curve.length ? Math.max(0, ...curve) : 1;
+      const span = Math.max(1e-9, max - min);
+      const xStep = curve.length > 1 ? plotW / (curve.length - 1) : 0;
+      const toX = (i) => pad.left + i * xStep;
+      const toY = (value) => pad.top + (max - value) / span * plotH;
+      const points = curve.map((value, i) => `${toX(i)},${toY(value)}`).join(' ');
+      const area = curve.length
+        ? `M ${toX(0)} ${toY(0)} L ${curve.map((value, i) => `${toX(i)} ${toY(value)}`).join(' L ')} L ${toX(curve.length - 1)} ${toY(0)} Z`
+        : '';
+      const axis0 = toY(0);
+      const gridValues = [min, (min + max) / 2, max];
+      const gridLines = gridValues.map((value) => `
+        <line x1="${pad.left}" y1="${toY(value)}" x2="${w - pad.right}" y2="${toY(value)}" stroke="rgba(170,190,255,.14)" stroke-width="1" />
+        <text x="${pad.left - 10}" y="${toY(value) + 4}" text-anchor="end" fill="#9aabc9" font-size="12">${fmtNum(value, 0)}</text>
+      `).join('');
+      const xLabels = curve.length > 1 ? [
+        [0, '시작'],
+        [Math.round((curve.length - 1) / 2), '중간'],
+        [curve.length - 1, '종료']
+      ] : [];
+      const labels = xLabels.map(([index, label]) => `
+        <text x="${toX(index)}" y="${h - 8}" text-anchor="middle" fill="#9aabc9" font-size="12">${label}</text>
+      `).join('');
+      const pathStroke = curve.length ? '#4f7cff' : '#9aabc9';
+      const pointsPath = curve.length ? `<polyline points="${points}" fill="none" stroke="${pathStroke}" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" />` : '';
+      svg.innerHTML = `
+        <defs>
+          <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="rgba(79,124,255,.28)"/>
+            <stop offset="100%" stop-color="rgba(79,124,255,.03)"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="${w}" height="${h}" rx="20" fill="#0f182c"/>
+        ${gridLines}
+        <line x1="${pad.left}" y1="${axis0}" x2="${w - pad.right}" y2="${axis0}" stroke="rgba(170,190,255,.32)" stroke-width="1.2" stroke-dasharray="4 5" />
+        ${curve.length ? `<path d="${area}" fill="url(#areaGrad)" stroke="none" />` : ''}
+        ${pointsPath}
+        ${labels}
+      `;
+    }
+
+    function evaluate() {
+      const rows = state.rawRows.slice().sort((a, b) => {
+        const ad = parseDate(a.entryDate)?.getTime() || 0;
+        const bd = parseDate(b.entryDate)?.getTime() || 0;
+        return ad - bd;
+      });
+      const filtered = filterRows(rows, els.startDate.value, els.endDate.value);
+      state.selectedRows = filtered;
+      const metrics = computeStats(filtered);
+      renderMetrics(metrics);
+      renderRevenueBreakdown(filtered, metrics);
+      renderTable(filtered);
+      renderChart(metrics.curve);
+      renderStrategyContributions(els.startDate.value, els.endDate.value);
+      els.currentStrategy.textContent = state.selectedStrategy?.title || state.selectedSlug || '-';
+      els.statusBox.textContent = filtered.length
+        ? `${state.selectedStrategy?.title || state.selectedSlug} 전략을 ${fmtDate(els.startDate.value)} ~ ${fmtDate(els.endDate.value)} 범위로 평가했습니다.`
+        : '선택 기간에 해당하는 거래가 없습니다. 기간을 넓히거나 다른 전략을 선택해 보세요.';
+    }
+
+    async function loadSource(sourceUrl) {
+      els.statusBox.textContent = '원본 데이터를 가져오는 중입니다.';
+      const proxyUrl = PROXY_ENDPOINT + encodeURIComponent(sourceUrl);
+      const response = await fetch(proxyUrl, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`원본 수신 실패: ${response.status}`);
+      }
+      const html = await response.text();
+      const parsed = parsePlaybook(html);
+      state.playbookData = parsed.playbookData;
+      state.backtestData = parsed.backtestData;
+      state.strategies = normalizeStrategies(parsed.playbookData);
+      if (!state.strategies.length) {
+        throw new Error('전략 목록이 비어 있습니다.');
+      }
+      state.selectedSlug = getHashSlug() || chooseRandomStrategy(state.strategies);
+      renderStrategyOptions();
+      els.sourceHost.textContent = new URL(sourceUrl).hostname;
+      els.statusBox.textContent = `${state.strategies.length}개 전략을 읽었습니다.`;
+    }
+
+    function renderStrategyOptions() {
+      const selected = state.selectedSlug || chooseRandomStrategy(state.strategies);
+      els.strategySelect.innerHTML = state.strategies.map((strategy) => {
+        const label = strategy.title || strategy.slug;
+        return `<option value="${strategy.slug}">${label}</option>`;
+      }).join('');
+      els.strategySelect.value = selected;
+      state.selectedSlug = selected;
+      updateStrategySelection(selected, { preserveDates: true });
+    }
+
+    function updateStrategySelection(slug, options = {}) {
+      const strategy = getStrategyBySlug(slug) || state.strategies[0] || null;
+      if (!strategy) return;
+      state.selectedSlug = strategy.slug;
+      state.selectedStrategy = strategy;
+      state.rawRows = rowsForSlug(strategy.slug);
+      const rows = state.rawRows.slice().sort((a, b) => {
+        const ad = parseDate(a.entryDate)?.getTime() || 0;
+        const bd = parseDate(b.entryDate)?.getTime() || 0;
+        return ad - bd;
+      });
+      const first = rows[0];
+      const last = rows[rows.length - 1];
+      const minDate = first?.entryDate ? fmtDate(first.entryDate) : '';
+      const maxDate = last?.entryDate ? fmtDate(last.entryDate) : '';
+      if (!options.preserveDates && minDate && maxDate) {
+        els.startDate.value = minDate;
+        els.endDate.value = maxDate;
+      }
+      els.currentStrategy.textContent = strategy.title || strategy.slug;
+      els.statusBox.textContent = strategy.description || '선택한 전략의 백테스트 데이터를 불러왔습니다.';
+      renderStrategyInfo(strategy, rows);
+      if (!options.preserveDates && rows.length) {
+        if (!els.startDate.value) els.startDate.value = minDate;
+        if (!els.endDate.value) els.endDate.value = maxDate;
+      }
+      evaluate();
+    }
+
+    function renderStrategyInfo(strategy, rows) {
+      const meta = [
+        ['전략명', strategy.title || strategy.slug],
+        ['설명', strategy.description || '원본 설명이 없습니다.'],
+        ['슬러그', strategy.slug],
+        ['원본 거래 수', rows.length.toLocaleString('ko-KR')],
+        ['태그', strategy.tags.length ? strategy.tags.join(', ') : '없음']
+      ];
+      els.strategyInfo.innerHTML = meta.map(([key, value]) => `
+        <div class="info-row">
+          <div class="info-key">${key}</div>
+          <div class="info-val">${escapeHtml(value)}</div>
+        </div>
+      `).join('');
+    }
+
+    async function refresh() {
+      try {
+        state.sourceUrl = els.sourceUrl.value.trim() || DEFAULT_SOURCE;
+        await loadSource(state.sourceUrl);
+        if (!els.startDate.value || !els.endDate.value) {
+          const rows = state.rawRows;
+          if (rows.length) {
+            const sorted = rows.slice().sort((a, b) => (parseDate(a.entryDate)?.getTime() || 0) - (parseDate(b.entryDate)?.getTime() || 0));
+            els.startDate.value = fmtDate(sorted[0].entryDate);
+            els.endDate.value = fmtDate(sorted[sorted.length - 1].entryDate);
+          }
+        }
+        evaluate();
+      } catch (error) {
+        console.error(error);
+        els.statusBox.innerHTML = `<div class="error">${escapeHtml(error.message || String(error))}</div>`;
+        els.strategyInfo.innerHTML = '<div class="empty">원본을 읽지 못했습니다. URL, 배포 상태, /api/proxy 연결을 확인해 주세요.</div>';
+        els.tradeBody.innerHTML = '<tr><td colspan="6" class="empty">원본 불러오기 실패</td></tr>';
+        renderChart([]);
+      }
+    }
+
+    els.strategySelect.addEventListener('change', (event) => {
+      state.selectedSlug = event.target.value;
+      updateStrategySelection(state.selectedSlug);
+    });
+    els.startDate.addEventListener('change', evaluate);
+    els.endDate.addEventListener('change', evaluate);
+    els.evaluateBtn.addEventListener('click', evaluate);
+    els.reloadBtn.addEventListener('click', refresh);
+    els.randomBtn.addEventListener('click', () => {
+      if (!state.strategies.length) return;
+      const slug = chooseRandomStrategy(state.strategies);
+      els.strategySelect.value = slug;
+      updateStrategySelection(slug);
+      location.hash = `#strategy/${encodeURIComponent(slug)}`;
+    });
+    window.addEventListener('hashchange', () => {
+      const slug = getHashSlug();
+      if (slug && slug !== state.selectedSlug && state.strategies.some((item) => item.slug === slug)) {
+        els.strategySelect.value = slug;
+        updateStrategySelection(slug);
+      }
+    });
+
+    refresh();
+  </script>
+</body>
+</html>

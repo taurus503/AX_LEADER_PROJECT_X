@@ -3,3 +3,7 @@
 .env.*
 !.env.example
 *.local
+.env
+.env.*
+!.env.example
+*.local

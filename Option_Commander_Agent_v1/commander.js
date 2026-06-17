@@ -59,10 +59,6 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
-function formatToolName(id) {
-  return id.replace(/-agent$/, "").replace(/-/g, " ");
-}
-
 function renderQuickPrompts(prompts) {
   els.quickPrompts.innerHTML = prompts
     .map((prompt) => `<button type="button" class="prompt-btn" data-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`)
@@ -81,7 +77,7 @@ function renderTranscript() {
     els.transcript.innerHTML = `
       <div class="message">
         <div class="label">Commander</div>
-        <p>질문을 입력하면 Commander가 Planner를 통해 Regime, Playbook, Validation 순서로 호출합니다.</p>
+        <p>질문을 입력하면 Commander가 Planner를 통해 필요한 Agent를 선택합니다.</p>
       </div>
     `;
     return;
@@ -98,13 +94,7 @@ function renderTranscript() {
         `;
       }
 
-      const chips = [
-        item.meta?.intent,
-        item.meta?.path,
-        item.meta?.validation,
-        item.meta?.memory
-      ].filter(Boolean);
-
+      const chips = [item.meta?.intent, item.meta?.path, item.meta?.validation, item.meta?.memory].filter(Boolean);
       return `
         <div class="message">
           <div class="label">Commander</div>
@@ -245,6 +235,12 @@ function renderTrail(plan) {
   els.decisionTrail.innerHTML = `
     <strong>${escapeHtml(plan.summary)}</strong>
     <p>${escapeHtml(plan.reasoning.join(" "))}</p>
+    <p style="margin-top:10px;color:var(--muted);font-size:12px;white-space:pre-wrap;">${escapeHtml(JSON.stringify({
+      intent: plan.intent,
+      confidence: plan.confidence,
+      selected_agents: plan.selected_agents,
+      fallback_plan: plan.fallback_plan
+    }, null, 2))}</p>
     <div class="tag-row" style="margin-top:8px;">
       ${plan.selectedTools.map((tool) => `<span class="tag">${escapeHtml(tool.name)}</span>`).join("")}
     </div>

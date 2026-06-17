@@ -53,10 +53,11 @@ async function runWithRetry(agentName, producer, fallbackProducer) {
 }
 
 async function generateLLMFinalAnswer(context) {
-  const apiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || "";
+  const apiKey = process.env.BIZROUTER_API_KEY || process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || "";
   if (!apiKey) return "";
 
-  const model = process.env.OPENAI_MODEL || process.env.LLM_MODEL || "gpt-4.1-mini";
+  const baseUrl = String(process.env.BIZROUTER_BASE_URL || process.env.OPENAI_BASE_URL || "https://api.bizrouter.ai/v1").replace(/\/+$/, "");
+  const model = process.env.BIZROUTER_MODEL || process.env.OPENAI_MODEL || process.env.LLM_MODEL || "openai/gpt-5.4.mini";
   const prompt = [
     "You are the final answer synthesizer for Option Commander Agent.",
     "Write a concise operational response with these exact sections:",
@@ -72,7 +73,7 @@ async function generateLLMFinalAnswer(context) {
 
   const userPayload = JSON.stringify(context, null, 2);
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -13,7 +13,7 @@ Operational minimum version of the Option Commander Agent.
   - Reflection Agent
   - Memory Agent
   - Final answer synthesis
-- If `OPENAI_API_KEY` or `LLM_API_KEY` exists, the final answer uses an LLM
+- If `BIZROUTER_API_KEY` exists, the final answer uses BizRouter's OpenAI-compatible Chat Completions API
 - If the LLM call fails, the server falls back to a mock answer
 - The UI shows an execution trace with:
   - question
@@ -41,9 +41,9 @@ Operational minimum version of the Option Commander Agent.
 
 Copy `.env.example` to `.env` locally and set:
 
-- `OPENAI_API_KEY`
-- `LLM_API_KEY`
-- `OPENAI_MODEL`
+- `BIZROUTER_API_KEY`
+- `BIZROUTER_BASE_URL`
+- `BIZROUTER_MODEL`
 
 Do not commit `.env`.
 

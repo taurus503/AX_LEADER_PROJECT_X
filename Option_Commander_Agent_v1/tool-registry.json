@@ -7,8 +7,8 @@
       "name": "Regime Agent",
       "agentId": "market-regime",
       "label": "Module 1",
-      "purpose": "시장 국면과 변동성을 먼저 해석",
-      "triggers": ["국면", "레짐", "시장", "변동성", "방향", "event risk", "event", "regime"],
+      "purpose": "Analyze market regime first",
+      "triggers": ["regime", "market", "volatility", "direction", "event risk", "now", "today"],
       "outputs": ["Current Regime", "Confidence Score", "Event Risk", "Market Interpretation", "Regime Reason"]
     },
     {
@@ -16,17 +16,26 @@
       "name": "Playbook Agent",
       "agentId": "option-playbook",
       "label": "Module 2",
-      "purpose": "국면에 맞는 옵션 전략군을 추천",
-      "triggers": ["전략", "추천", "playbook", "옵션", "hedge", "방어", "공격", "trade"],
+      "purpose": "Recommend option playbooks by regime",
+      "triggers": ["strategy", "playbook", "option", "recommend", "hedge", "trade"],
       "outputs": ["Top Recommended 9", "Avoid Now 6", "Strategy Score", "Risk Level", "Expected Return", "Playbook Mapping"]
+    },
+    {
+      "id": "reflection-agent",
+      "name": "Reflection Agent",
+      "agentId": "reflection",
+      "label": "Module 2.5",
+      "purpose": "Self-review the strategy result before final answer",
+      "triggers": ["reflection", "self review", "review again", "risk high", "recheck", "self-check", "검토", "반성"],
+      "outputs": ["Risk Review", "Validation Trigger", "Revised Answer", "Residual Risk"]
     },
     {
       "id": "validation-agent",
       "name": "Validation Agent",
       "agentId": "validation",
       "label": "Module 3",
-      "purpose": "검증 기준과 백테스트 우위를 점검",
-      "triggers": ["검증", "validation", "review", "reject", "pass", "backtest", "리스크", "꼬리", "레드팀"],
+      "purpose": "Red-team the candidate and label PASS/REVIEW/REJECT",
+      "triggers": ["validation", "review", "reject", "pass", "backtest", "risk", "tail"],
       "outputs": ["PASS", "REVIEW", "REJECT", "Validation Score", "Risk Warning"]
     },
     {
@@ -34,14 +43,14 @@
       "name": "Attribution Agent",
       "agentId": "attribution",
       "label": "Module 4",
-      "purpose": "성과를 Allocation / Selection / Interaction으로 분해",
-      "triggers": ["성과", "분해", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl", "기여"],
+      "purpose": "Decompose performance into allocation / selection / interaction",
+      "triggers": ["performance", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl"],
       "outputs": ["Allocation Effect", "Selection Effect", "Interaction Effect", "Alpha Source", "Beta Source", "Update Signal"]
     }
   ],
   "prompts": [
     "지금 추천 전략은?",
-    "레짐과 플레이북을 같이 봐줘",
+    "추천 결과를 다시 검토해줘",
     "이 전략을 검증까지 해줘",
     "성과가 왜 그렇게 나왔는지 분해해줘"
   ]

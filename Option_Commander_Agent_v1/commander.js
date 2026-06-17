@@ -4,6 +4,7 @@ const els = {
   transcript: document.getElementById("transcript"),
   agentList: document.getElementById("agentList"),
   toolCallList: document.getElementById("toolCallList"),
+  reflectionLoop: document.getElementById("reflectionLoop"),
   battlePlan: document.getElementById("battlePlan"),
   decisionTrail: document.getElementById("decisionTrail"),
   questionInput: document.getElementById("questionInput"),
@@ -74,18 +75,11 @@ function renderTranscript() {
   }
 
   els.transcript.innerHTML = state.history.map((item) => {
-    if (item.role === "user") {
-      return `
-        <div class="message user">
-          <div class="label">User</div>
-          <p>${escapeHtml(item.text)}</p>
-        </div>
-      `;
-    }
-
+    const label = item.role === "user" ? "User" : "Commander";
+    const className = item.role === "user" ? "message user" : "message";
     return `
-      <div class="message">
-        <div class="label">Commander</div>
+      <div class="${className}">
+        <div class="label">${label}</div>
         <p>${escapeHtml(item.text)}</p>
       </div>
     `;
@@ -103,9 +97,11 @@ function renderRegistry(plan) {
         ? "Transition / confidence 74%"
         : tool.id === "playbook-agent"
           ? "Bull Call Spread → Short Straddle"
-          : tool.id === "validation-agent"
-            ? "REVIEW / 68"
-            : "allocation 2.4 / selection 3.1";
+          : tool.id === "reflection-agent"
+            ? "Risk review → validation recheck"
+            : tool.id === "validation-agent"
+              ? "REVIEW / 69"
+              : "allocation 2.4 / selection 3.1";
 
     return `
       <article class="agent-card ${isActive ? "active" : ""}">
@@ -134,9 +130,11 @@ function renderToolCalls(plan) {
       ? `Regime: ${call.output.currentRegime}, Event Risk: ${call.output.eventRisk}, Confidence: ${Math.round(call.output.confidenceScore * 100)}%`
       : call.id === "playbook-agent"
         ? `Top: ${call.output.topRecommended[0]}, Avoid: ${call.output.avoidNow[0]}, Score: ${call.output.strategyScore}`
-        : call.id === "validation-agent"
+        : String(call.id).startsWith("validation-agent")
           ? `Label: ${call.output.label}, Score: ${call.output.validationScore}`
-          : `Alpha: ${call.output.alphaSource}, Update: ${call.output.updateSignal}`;
+          : call.id === "reflection-agent"
+            ? `Self-review: ${call.output.selfReview}`
+            : `Alpha: ${call.output.alphaSource}, Update: ${call.output.updateSignal}`;
 
     return `
       <article class="trail-card">
@@ -145,6 +143,26 @@ function renderToolCalls(plan) {
       </article>
     `;
   }).join("");
+}
+
+function renderReflection(plan) {
+  const reflection = plan.reflection;
+  const validation = plan.validation;
+
+  els.reflectionLoop.innerHTML = `
+    <div class="trail-card">
+      <strong>Reflection Summary</strong>
+      <p>${escapeHtml(reflection?.selfReview || "No reflection result available.")}</p>
+    </div>
+    <div class="trail-card">
+      <strong>Validation Recheck</strong>
+      <p>${escapeHtml(validation ? `${validation.label} / ${validation.validationScore} / ${validation.riskWarning}` : "No recheck needed.")}</p>
+    </div>
+    <div class="trail-card">
+      <strong>Revised Answer</strong>
+      <p>${escapeHtml(plan.finalAnswer)}</p>
+    </div>
+  `;
 }
 
 function renderBattlePlan(plan) {
@@ -169,7 +187,7 @@ function renderTrail(plan) {
 function pushConversation(userText, plan) {
   state.history.unshift({
     role: "assistant",
-    text: `${plan.summary}\n\n- Selected: ${plan.selectedTools.map((tool) => tool.name).join(" → ")}\n- Reason: ${plan.reasoning.join(" ")}\n- Next: ${plan.battlePlan[1]?.text || "검토 포인트 정리"}`
+    text: `${plan.summary}\n\n- Selected: ${plan.selectedTools.map((tool) => tool.name).join(" → ")}\n- Reflection: ${plan.reflection?.selfReview || "none"}\n- Result: ${plan.finalAnswer}`
   });
   state.history.unshift({ role: "user", text: userText });
 }
@@ -183,14 +201,14 @@ function renderMetrics(plan) {
   els.metricConfidence.textContent = `${confidencePct}%`;
   els.metricConfidenceNote.textContent = plan.reasoning[0] || "Planner confidence based on routing clarity.";
   els.metricDepth.textContent = String(plan.selectedTools.length);
-  els.metricDepthNote.textContent = `${plan.selectedTools.length}개의 Tool이 연결됩니다.`;
+  els.metricDepthNote.textContent = `${plan.selectedTools.length} tools are connected.`;
   els.metricReadiness.textContent = plan.selectedTools.length >= 3 ? "High" : "Medium";
-  els.metricReadinessNote.textContent = plan.selectedTools.length >= 3 ? "다단계 검토 체계가 구성되었습니다." : "짧은 질의는 라이트 라우팅으로 응답합니다.";
+  els.metricReadinessNote.textContent = plan.selectedTools.length >= 3 ? "Multi-step review is active." : "Light routing is enough for this request.";
   els.metricIntent.textContent = plan.intent;
   els.metricIntentNote.textContent = plan.summary;
   els.latencyLabel.textContent = plan.selectedTools.length >= 3 ? "Planner+" : "Instant";
   els.updatedAt.textContent = fmtTime(plan.updatedAt);
-  els.turnHint.textContent = `${plan.selectedTools.length}개 Tool이 선택되었습니다.`;
+  els.turnHint.textContent = `${plan.selectedTools.length} tools selected.`;
 }
 
 function runPlan() {
@@ -202,6 +220,7 @@ function runPlan() {
   renderMetrics(plan);
   renderRegistry(plan);
   renderToolCalls(plan);
+  renderReflection(plan);
   renderBattlePlan(plan);
   renderTrail(plan);
 }
@@ -225,10 +244,11 @@ els.resetBtn.addEventListener("click", () => {
   renderTranscript();
   els.agentList.innerHTML = "";
   els.toolCallList.innerHTML = "";
+  els.reflectionLoop.innerHTML = "";
   els.battlePlan.innerHTML = "";
   els.decisionTrail.innerHTML = `
-    <strong>Planner 대기 상태</strong>
-    <p>질문이 들어오면 어떤 Tool을 먼저 호출할지 결정합니다.</p>
+    <strong>Planner standby</strong>
+    <p>Type a question and the Planner will choose the next tool call.</p>
   `;
 });
 

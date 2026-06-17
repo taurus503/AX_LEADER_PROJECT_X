@@ -1,49 +1,46 @@
 # Option Commander Agent v1
 
-Planner 기반 Commander Agent 데모입니다.
+Planner-based Commander Agent demo.
 
-## 목적
+## Goal
 
-사용자 질문을 받아 필요한 Agent를 선택하고, 호출 순서를 정리한 뒤 Battle Plan으로 합칩니다.
+Accept a user question, choose the required tools, run a reflection loop when the strategy looks risky, and return a revised answer.
 
-## 포함 Agent
+## Included Tools
 
 1. Market Regime Agent
 2. Option Playbook Agent
-3. Validation Agent
-4. Attribution Agent
+3. Reflection Agent
+4. Validation Agent
+5. Attribution Agent
 
 ## Tool Registry
 
-`tool-registry.json`에 등록된 Tool 목록을 Commander가 읽고, 질문 의도에 따라 호출 순서를 결정합니다.
+`tool-registry.json` is the source of truth for the Commander routing flow.
+The Reflection Agent reviews strategy recommendations and, when risk is high,
+re-calls the Validation Agent before the final answer is produced.
 
-## 구성 파일
+## Files
 
 - `index.html`
 - `commander.js`
 - `planner.js`
-- `agent-registry.json`
+- `tool-registry.json`
 - `README.md`
 
-## 동작
+## Flow
 
-1. 질문 입력
-2. Planner가 intent와 routing sequence 계산
-3. 필요한 Agent 선택
-4. 선택된 Agent 결과를 Dashboard에 렌더링
-5. Battle Plan과 Decision Trail 생성
+1. User question
+2. Planner chooses the tool sequence
+3. Tools are called in order
+4. Reflection Agent self-checks the strategy result
+5. Validation Agent is re-called when needed
+6. A revised answer and battle plan are generated
 
-## 실행
+## Run
 
-정적 사이트로 열 수 있습니다.
+This is a static demo. Open the folder locally or deploy it to Vercel.
 
-- 로컬에서 파일 직접 열기
-- 또는 정적 서버 / Vercel에 배포
+## Design
 
-## 디자인
-
-다크 네이비 톤, Chat + Dashboard, premium glassmorphism 스타일을 유지했습니다.
-
-## 비고
-
-이 데모는 기존 Agent를 수정하지 않고, 새 Commander 레이어만 독립적으로 보여주기 위한 화면입니다.
+Dark navy, chat + dashboard, and premium glassmorphism styling.

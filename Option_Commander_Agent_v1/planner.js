@@ -7,8 +7,8 @@ export const DEFAULT_TOOL_REGISTRY = {
       name: "Regime Agent",
       agentId: "market-regime",
       label: "Module 1",
-      purpose: "시장 국면과 변동성을 먼저 해석",
-      triggers: ["국면", "레짐", "시장", "변동성", "방향", "event risk", "event", "regime"],
+      purpose: "Analyze market regime first",
+      triggers: ["regime", "market", "volatility", "direction", "event risk", "now", "today"],
       outputs: ["Current Regime", "Confidence Score", "Event Risk", "Market Interpretation", "Regime Reason"]
     },
     {
@@ -16,17 +16,26 @@ export const DEFAULT_TOOL_REGISTRY = {
       name: "Playbook Agent",
       agentId: "option-playbook",
       label: "Module 2",
-      purpose: "국면에 맞는 옵션 전략군을 추천",
-      triggers: ["전략", "추천", "playbook", "옵션", "hedge", "방어", "공격", "trade"],
+      purpose: "Recommend option playbooks by regime",
+      triggers: ["strategy", "playbook", "option", "recommend", "hedge", "trade"],
       outputs: ["Top Recommended 9", "Avoid Now 6", "Strategy Score", "Risk Level", "Expected Return", "Playbook Mapping"]
+    },
+    {
+      id: "reflection-agent",
+      name: "Reflection Agent",
+      agentId: "reflection",
+      label: "Module 2.5",
+      purpose: "Self-review the strategy result before final answer",
+      triggers: ["reflection", "self review", "review again", "risk high", "recheck", "self-check", "검토", "반성"],
+      outputs: ["Risk Review", "Validation Trigger", "Revised Answer", "Residual Risk"]
     },
     {
       id: "validation-agent",
       name: "Validation Agent",
       agentId: "validation",
       label: "Module 3",
-      purpose: "검증 기준과 백테스트 우위를 점검",
-      triggers: ["검증", "validation", "review", "reject", "pass", "backtest", "리스크", "꼬리", "레드팀"],
+      purpose: "Red-team the candidate and label PASS/REVIEW/REJECT",
+      triggers: ["validation", "review", "reject", "pass", "backtest", "risk", "tail"],
       outputs: ["PASS", "REVIEW", "REJECT", "Validation Score", "Risk Warning"]
     },
     {
@@ -34,14 +43,14 @@ export const DEFAULT_TOOL_REGISTRY = {
       name: "Attribution Agent",
       agentId: "attribution",
       label: "Module 4",
-      purpose: "성과를 Allocation / Selection / Interaction으로 분해",
-      triggers: ["성과", "분해", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl", "기여"],
+      purpose: "Decompose performance into allocation / selection / interaction",
+      triggers: ["performance", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl"],
       outputs: ["Allocation Effect", "Selection Effect", "Interaction Effect", "Alpha Source", "Beta Source", "Update Signal"]
     }
   ],
   prompts: [
     "지금 추천 전략은?",
-    "레짐과 플레이북을 같이 봐줘",
+    "추천 결과를 다시 검토해줘",
     "이 전략을 검증까지 해줘",
     "성과가 왜 그렇게 나왔는지 분해해줘"
   ]
@@ -51,26 +60,32 @@ const ROUTE_RULES = [
   {
     intent: "Strategy",
     keywords: ["추천 전략", "추천전략", "전략", "playbook", "옵션", "포지션", "trade"],
-    sequence: ["regime-agent", "playbook-agent", "validation-agent"],
-    summary: "전략 도출과 실행 전 검증까지 이어지는 흐름입니다."
+    sequence: ["regime-agent", "playbook-agent", "reflection-agent"],
+    summary: "This is a strategy request. We route through regime, playbook, reflection, and validation."
   },
   {
     intent: "Market Regime",
     keywords: ["국면", "레짐", "변동성", "시장", "방향", "now", "지금"],
     sequence: ["regime-agent", "playbook-agent"],
-    summary: "질문이 시장 상태 해석을 먼저 요구합니다."
+    summary: "This question wants regime interpretation first."
+  },
+  {
+    intent: "Reflection",
+    keywords: ["reflection", "self review", "recheck", "다시 검토", "검토", "risk high"],
+    sequence: ["reflection-agent", "validation-agent"],
+    summary: "This request is asking for a self-review loop."
   },
   {
     intent: "Validation",
-    keywords: ["검증", "validation", "review", "reject", "pass", "backtest", "리스크"],
+    keywords: ["validation", "review", "reject", "pass", "backtest", "리스크"],
     sequence: ["validation-agent"],
-    summary: "실행 전 검증 기준과 위험 라벨이 중요합니다."
+    summary: "This request focuses on validation and risk labeling."
   },
   {
     intent: "Attribution",
     keywords: ["성과", "분해", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl"],
     sequence: ["attribution-agent"],
-    summary: "결과를 효과별로 해석하는 요청입니다."
+    summary: "This request focuses on performance decomposition."
   }
 ];
 
@@ -102,15 +117,13 @@ function selectRoute(question, registry) {
     .filter((rule) => rule.hits > 0)
     .sort((a, b) => b.hits - a.hits);
 
-  const hasBattle = q.includes("battle") || q.includes("종합") || q.includes("all") || q.includes("한 번");
-  const hasPerformance = q.includes("성과") || q.includes("분해") || q.includes("attribution");
+  const wantsPerformance = q.includes("성과") || q.includes("분해") || q.includes("attribution");
+  const wantsReflection = q.includes("reflection") || q.includes("self review") || q.includes("검토") || q.includes("recheck");
 
   let sequence = matched.flatMap((rule) => rule.sequence);
-  if (!sequence.length) {
-    sequence = q ? ["regime-agent", "playbook-agent"] : ["regime-agent"];
-  }
-  if (hasBattle) sequence = ["regime-agent", "playbook-agent", "validation-agent", "attribution-agent"];
-  if (hasPerformance) sequence = ["regime-agent", "playbook-agent", "validation-agent", "attribution-agent"];
+  if (!sequence.length) sequence = q ? ["regime-agent", "playbook-agent"] : ["regime-agent"];
+  if (wantsPerformance) sequence = ["regime-agent", "playbook-agent", "reflection-agent", "validation-agent", "attribution-agent"];
+  if (wantsReflection) sequence = unique(["regime-agent", "playbook-agent", "reflection-agent", "validation-agent"]);
 
   sequence = unique(sequence).filter((id) => getTool(registry, id));
   if (!sequence.length) sequence = ["regime-agent", "playbook-agent"];
@@ -128,13 +141,76 @@ function computeConfidence(question, sequence, matched) {
 
 function buildReasoning(sequence, matched) {
   const lines = [];
-  const intentText = matched[0]?.summary || "질문 의도가 넓어서 기본 오케스트레이션을 적용했습니다.";
+  const intentText = matched[0]?.summary || "The question is broad, so we apply the default planner path.";
   lines.push(intentText);
-  if (sequence.includes("regime-agent")) lines.push("시장 국면 해석을 위해 Regime Agent를 우선 호출합니다.");
-  if (sequence.includes("playbook-agent")) lines.push("전략 후보를 얻기 위해 Playbook Agent를 연결합니다.");
-  if (sequence.includes("validation-agent")) lines.push("실행 전 리스크와 백테스트 우위를 확인하기 위해 Validation Agent를 추가합니다.");
-  if (sequence.includes("attribution-agent")) lines.push("성과와 업데이트 신호를 분해하기 위해 Attribution Agent를 호출합니다.");
+  if (sequence.includes("regime-agent")) lines.push("We start with Regime Agent to anchor the market state.");
+  if (sequence.includes("playbook-agent")) lines.push("We then call Playbook Agent to get strategy candidates.");
+  if (sequence.includes("reflection-agent")) lines.push("Reflection Agent self-checks the strategy result before finalizing.");
+  if (sequence.includes("validation-agent")) lines.push("Validation Agent is used to re-check risk and label the plan.");
+  if (sequence.includes("attribution-agent")) lines.push("Attribution Agent decomposes the outcome into component effects.");
   return lines;
+}
+
+function buildRegimeCall() {
+  return {
+    currentRegime: "Transition",
+    confidenceScore: 0.74,
+    eventRisk: "high",
+    marketInterpretation: "Direction is mixed and volatility is changing, so a cautious read is needed.",
+    regimeReason: "Recent market behavior is dominated by shifting volatility rather than clean trend."
+  };
+}
+
+function buildPlaybookCall(question, context) {
+  const riskLevel = /high|risk|volatile/i.test(question) ? "High" : "Medium";
+  const strategyScore = riskLevel === "High" ? 86 : 92;
+  return {
+    topRecommended: ["Bull Call Spread", "Call Backspread", "Covered Call"],
+    avoidNow: ["Short Straddle", "Short Put", "Reverse Calendar"],
+    strategyScore,
+    riskLevel,
+    expectedReturn: riskLevel === "High" ? "+9.8%" : "+12.4%",
+    playbookMapping: `${context.intent || "Strategy"} intent mapped from "${question}"`
+  };
+}
+
+function buildReflectionCall(question, playbookOutput) {
+  const risky =
+    (playbookOutput?.riskLevel || "Medium") !== "Low" ||
+    (playbookOutput?.strategyScore || 0) < 95 ||
+    /risk|위험|리스크/i.test(question);
+  return {
+    selfReview: risky ? "Risk is high. Recheck with Validation Agent." : "Risk is acceptable. Finalize with light validation.",
+    shouldRevalidate: risky,
+    reflectionNote: risky
+      ? "The strategy has edge, but tail risk and event sensitivity need one more pass."
+      : "The strategy looks balanced enough to move forward."
+  };
+}
+
+function buildValidationCall(stage, reflectionOutput) {
+  const label = reflectionOutput?.shouldRevalidate ? "REVIEW" : "PASS";
+  return {
+    label,
+    validationScore: reflectionOutput?.shouldRevalidate ? 69 : 82,
+    riskWarning: reflectionOutput?.shouldRevalidate
+      ? "Risk is elevated. Validate tail risk and event sensitivity again."
+      : "Risk is acceptable with current evidence.",
+    validationComment: stage === "recheck"
+      ? "This is the re-run after Reflection Agent flagged risk."
+      : "Initial validation pass for the candidate strategy."
+  };
+}
+
+function buildAttributionCall() {
+  return {
+    allocationEffect: 2.4,
+    selectionEffect: 3.1,
+    interactionEffect: -0.6,
+    alphaSource: "selection",
+    betaSource: "market timing",
+    updateSignal: "reduce_leverage"
+  };
 }
 
 function invokeTool(tool, question, context) {
@@ -147,68 +223,45 @@ function invokeTool(tool, question, context) {
   };
 
   if (tool.id === "regime-agent") {
-    return {
-      ...base,
-      output: {
-        currentRegime: "Transition",
-        confidenceScore: 0.74,
-        eventRisk: "high",
-        marketInterpretation: "방향성과 변동성 변화가 함께 움직여 우선 해석이 필요합니다.",
-        regimeReason: "최근 시장은 추세보다 변동성 변화가 더 큰 신호입니다."
-      }
-    };
+    return { ...base, output: buildRegimeCall() };
   }
 
   if (tool.id === "playbook-agent") {
-    return {
-      ...base,
-      output: {
-        topRecommended: ["Bull Call Spread", "Call Backspread", "Covered Call"],
-        avoidNow: ["Short Straddle", "Short Put", "Reverse Calendar"],
-        strategyScore: 92,
-        riskLevel: "Medium",
-        expectedReturn: "+12.4%",
-        playbookMapping: `${context.intent || "Strategy"} intent mapped from "${question}"`
-      }
-    };
+    return { ...base, output: buildPlaybookCall(question, context) };
+  }
+
+  if (tool.id === "reflection-agent") {
+    const playbookCall = context.calls.find((call) => call.id === "playbook-agent");
+    const output = buildReflectionCall(question, playbookCall?.output);
+    return { ...base, output };
   }
 
   if (tool.id === "validation-agent") {
-    return {
-      ...base,
-      output: {
-        label: "REVIEW",
-        validationScore: 68,
-        riskWarning: "방향성은 맞지만 이벤트 이후 변동성 급락 위험을 추가 확인해야 합니다.",
-        validationComment: "백테스트 우위는 있으나 꼬리 위험 통제가 추가로 필요합니다."
-      }
-    };
+    const reflectionCall = context.calls.find((call) => call.id === "reflection-agent");
+    const stage = context.stage || "initial";
+    return { ...base, output: buildValidationCall(stage, reflectionCall?.output) };
   }
 
   if (tool.id === "attribution-agent") {
-    return {
-      ...base,
-      output: {
-        allocationEffect: 2.4,
-        selectionEffect: 3.1,
-        interactionEffect: -0.6,
-        alphaSource: "selection",
-        betaSource: "market timing",
-        updateSignal: "reduce_leverage"
-      }
-    };
+    return { ...base, output: buildAttributionCall() };
   }
 
-  return {
-    ...base,
-    output: { message: "No handler available" }
-  };
+  return { ...base, output: { message: "No handler available" } };
 }
 
-function buildSummary(intent, sequence, confidence, registry) {
+function buildSummary(intent, sequence, confidence, registry, revisionNote = "") {
   const labels = sequence.map((id) => getTool(registry, id)?.name).filter(Boolean);
   const chain = labels.length ? labels.join(" → ") : "Regime Agent";
-  return `${intent} 요청으로 해석했고, ${chain} 순서로 호출합니다. Planner confidence는 ${(confidence * 100).toFixed(0)}%입니다.`;
+  const base = `${intent} request routed through ${chain}. Planner confidence is ${(confidence * 100).toFixed(0)}%.`;
+  return revisionNote ? `${base} ${revisionNote}` : base;
+}
+
+function buildBattlePlan(sequence, intent) {
+  return [
+    { title: "Planner route", text: sequence.map((id) => id.replace(/-agent$/, "").replace(/-/g, " ")).join(" → ") },
+    { title: "Commander action", text: intent === "Attribution" ? "Summarize performance decomposition and update signal." : "Route market view → strategy → reflection → validation." },
+    { title: "Risk posture", text: sequence.includes("validation-agent") ? "Validation is included, so risk commentary is explicit." : "Light routing is enough for this question." }
+  ];
 }
 
 export function planQuestion(question, registry = DEFAULT_TOOL_REGISTRY) {
@@ -216,18 +269,55 @@ export function planQuestion(question, registry = DEFAULT_TOOL_REGISTRY) {
   const { sequence, matched } = selectRoute(input, registry);
   const confidence = computeConfidence(input, sequence, matched);
   const intent = matched[0]?.intent || (sequence.includes("attribution-agent") ? "Attribution" : sequence.includes("validation-agent") ? "Validation" : "Strategy");
+
   const selectedTools = sequence.map((id, index) => {
     const tool = getTool(registry, id);
-    return { ...tool, order: index + 1 };
-  });
-  const reasoning = buildReasoning(sequence, matched);
-  const toolCalls = selectedTools.map((tool) => invokeTool(tool, input, { intent, confidence, sequence }));
+    return tool ? { ...tool, order: index + 1 } : null;
+  }).filter(Boolean);
 
-  const battlePlan = [
-    { title: "Planner route", text: selectedTools.map((tool) => tool.name).join(" → ") },
-    { title: "Commander action", text: intent === "Attribution" ? "성과 분해와 업데이트 신호를 먼저 요약합니다." : "국면 해석 → 전략 후보 → 검증 순으로 응답합니다." },
-    { title: "Risk posture", text: sequence.includes("validation-agent") ? "검증 단계가 포함되어 있어 실행 전 위험 설명을 강화합니다." : "검토 포인트 중심으로 빠르게 응답합니다." }
-  ];
+  const reasoning = buildReasoning(sequence, matched);
+  const calls = [];
+  const routeContext = { intent, confidence, sequence, calls };
+  let needsValidationRecheck = false;
+  let usedValidationRecheck = false;
+
+  for (const tool of selectedTools) {
+    const call = invokeTool(tool, input, routeContext);
+    calls.push(call);
+
+    if (tool.id === "reflection-agent" && call.output.shouldRevalidate) {
+      needsValidationRecheck = true;
+    }
+
+    if (tool.id === "validation-agent" && needsValidationRecheck && !usedValidationRecheck) {
+      calls[calls.length - 1] = {
+        ...invokeTool(tool, input, { ...routeContext, stage: "recheck" }),
+        id: "validation-agent-recheck",
+        name: "Validation Agent (Recheck)",
+        label: "Module 3"
+      };
+      usedValidationRecheck = true;
+    }
+  }
+
+  if (needsValidationRecheck && !usedValidationRecheck) {
+    const validationTool = getTool(registry, "validation-agent");
+    if (validationTool) {
+      calls.push({
+        ...invokeTool(validationTool, input, { ...routeContext, stage: "recheck" }),
+        id: "validation-agent-recheck",
+        name: "Validation Agent (Recheck)",
+        label: "Module 3"
+      });
+      usedValidationRecheck = true;
+    }
+  }
+
+  const reflectionCall = calls.find((call) => call.id === "reflection-agent");
+  const validationCall = [...calls].reverse().find((call) => String(call.id).includes("validation-agent"));
+  const revisionNote = reflectionCall?.output?.shouldRevalidate
+    ? "Reflection Agent flagged risk and triggered a second validation pass."
+    : "Reflection Agent accepted the strategy with no extra validation pass.";
 
   return {
     question: input,
@@ -236,9 +326,14 @@ export function planQuestion(question, registry = DEFAULT_TOOL_REGISTRY) {
     selectedTools,
     selectedToolIds: sequence,
     reasoning,
-    toolCalls,
-    battlePlan,
-    summary: buildSummary(intent, sequence, confidence, registry),
+    toolCalls: calls,
+    reflection: reflectionCall?.output || null,
+    validation: validationCall?.output || null,
+    battlePlan: buildBattlePlan(sequence, intent),
+    summary: buildSummary(intent, sequence, confidence, registry, revisionNote),
+    finalAnswer: reflectionCall?.output?.shouldRevalidate
+      ? "Revised answer: the strategy should be treated as REVIEW until the rechecked validation clears the risk."
+      : "Revised answer: the strategy can move forward with current risk controls.",
     updatedAt: new Date().toISOString()
   };
 }
@@ -251,7 +346,7 @@ export async function loadToolRegistry() {
       if (data?.tools?.length) return data;
     }
   } catch {
-    // file:// fallback
+    // Fallback for local file:// usage.
   }
   return JSON.parse(JSON.stringify(DEFAULT_TOOL_REGISTRY));
 }

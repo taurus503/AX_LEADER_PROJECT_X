@@ -25,6 +25,16 @@ function safeParseJSON(value, fallback = {}) {
   }
 }
 
+async function readBody(req) {
+  return await new Promise((resolve) => {
+    let raw = "";
+    req.on("data", (chunk) => {
+      raw += chunk;
+    });
+    req.on("end", () => resolve(raw));
+  });
+}
+
 async function runWithRetry(agentName, producer, fallbackProducer) {
   let retryCount = 0;
   let lastError = null;
@@ -62,9 +72,9 @@ async function generateLLMFinalAnswer(context) {
     "You are the final answer synthesizer for Option Commander Agent.",
     "Use only the provided JSON context. Do not invent tool outputs, market data, or conclusions.",
     "Write a concise operational answer in Korean with these exact sections:",
-    "1. °á·Ð",
-    "2. ±Ù°Å",
-    "3. ´ÙÀ½ ¾È³»",
+    "1. ê²°ë¡ ",
+    "2. ê·¼ê±°",
+    "3. ë‹¤ìŒ ì•ˆë‚´",
     "Rules:",
     "- Base the answer only on planner, tool_results, validation_label, memory_record, and llmContext fields.",
     "- Mention current market regime, recommended strategy, validation label, core risk, memory usage, and next review action.",
@@ -73,8 +83,6 @@ async function generateLLMFinalAnswer(context) {
     "- Do not present the output as investment instruction; present it as review support only.",
     "- If the context is insufficient, say that additional confirmation is needed."
   ].join("\n");
-
-  const userPayload = JSON.stringify(context, null, 2);
 
   const response = await fetch(baseUrl + "/chat/completions", {
     method: "POST",
@@ -87,7 +95,7 @@ async function generateLLMFinalAnswer(context) {
       temperature: 0.2,
       messages: [
         { role: "system", content: prompt },
-        { role: "user", content: userPayload }
+        { role: "user", content: JSON.stringify(context, null, 2) }
       ]
     })
   });
@@ -107,13 +115,7 @@ export default async function handler(req, res) {
 
   let body = {};
   try {
-    body = safeParseJSON(await new Promise((resolve) => {
-      let raw = "";
-      req.on("data", (chunk) => {
-        raw += chunk;
-      });
-      req.on("end", () => resolve(raw));
-    }), {});
+    body = safeParseJSON(await readBody(req), {});
   } catch {
     body = {};
   }
@@ -152,8 +154,8 @@ export default async function handler(req, res) {
 
   const playbookResult = await runWithRetry(
     "Playbook Agent",
-    async () => buildPlaybookOutput(question, regimeResult.output),
-    async () => buildPlaybookOutput(question, regimeResult.output)
+    async () => buildPlaybookOutput(question, regimeResult.output, planner),
+    async () => buildPlaybookOutput(question, regimeResult.output, planner)
   );
   toolResults.push({
     agent: "Playbook Agent",
@@ -231,14 +233,16 @@ export default async function handler(req, res) {
     recommended_strategy: playbookResult.output.topRecommended?.[0] || "",
     core_risk: validationResult.output.riskWarning,
     memory_used: memoryRecords.length > 0 || Boolean(memoryResult.output),
-    memory_record: memoryResult.output
+    memory_record: memoryResult.output,
+    date_hint: planner.date_hint || regimeResult.output.asOfDate || playbookResult.output.asOfDate || "",
+    historical_mode: Boolean(planner.date_hint || regimeResult.output.asOfDate || playbookResult.output.asOfDate)
   };
 
   let llmAnswer = "";
   let llmFailed = false;
   try {
     llmAnswer = await generateLLMFinalAnswer(llmContext);
-  } catch (error) {
+  } catch {
     llmFailed = true;
     fallbackUsed = true;
     failedTools.push("final-answer-llm");
@@ -263,6 +267,8 @@ export default async function handler(req, res) {
     question,
     intent: planner.intent,
     confidence: planner.confidence,
+    date_hint: planner.date_hint || "",
+    historical_mode: Boolean(planner.historical_mode),
     selected_agents: planner.selected_agents,
     reason: planner.reason,
     execution_plan: planner.execution_plan,
@@ -273,6 +279,7 @@ export default async function handler(req, res) {
     core_risk: validationResult.output.riskWarning,
     memory_used: memoryRecords.length > 0 || Boolean(memoryResult.output),
     memory_record: memoryResult.output,
+    llm_answer: llmAnswer,
     retry_count: retryCount,
     fallback_used: fallbackUsed || llmFailed,
     failed_tools: failedTools,
@@ -290,6 +297,9 @@ export default async function handler(req, res) {
     trace: {
       question,
       intent: planner.intent,
+      confidence: planner.confidence,
+      date_hint: planner.date_hint || "",
+      historical_mode: Boolean(planner.historical_mode),
       selected_agents: planner.selected_agents,
       tool_results: toolResults,
       validation_label: validationResult.output.label,

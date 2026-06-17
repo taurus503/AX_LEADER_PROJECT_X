@@ -15,6 +15,7 @@ const els = {
   battlePlan: document.getElementById("battlePlan"),
   decisionTrail: document.getElementById("decisionTrail"),
   questionInput: document.getElementById("questionInput"),
+  asOfDateInput: document.getElementById("asOfDateInput"),
   composer: document.getElementById("composer"),
   quickPrompts: document.getElementById("quickPrompts"),
   resetBtn: document.getElementById("resetBtn"),
@@ -61,6 +62,23 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+function extractDateHint(value = "") {
+  const text = String(value || "");
+  const iso = text.match(/(20\d{2}-\d{2}-\d{2})/);
+  if (iso) return iso[1];
+  const dotted = text.match(/(20\d{2})[./](\d{1,2})[./](\d{1,2})/);
+  if (dotted) {
+    const [, year, month, day] = dotted;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  const korean = text.match(/(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+  if (korean) {
+    const [, year, month, day] = korean;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  return "";
+}
+
 function loadMemoryRecords() {
   try {
     const raw = window.localStorage.getItem(MEMORY_KEY);
@@ -98,6 +116,7 @@ async function loadRegistry() {
   } catch {
     // fallback below
   }
+
   return {
     tools: [
       { id: "regime-agent", name: "Regime Agent", label: "Module 1", purpose: "Analyze market regime first", outputs: ["Current Regime", "Confidence Score", "Event Risk"] },
@@ -107,7 +126,7 @@ async function loadRegistry() {
       { id: "memory-agent", name: "Memory Agent", label: "Memory", purpose: "Persist regime / strategy / result JSON", outputs: ["regime", "strategy", "result"] },
       { id: "attribution-agent", name: "Attribution Agent", label: "Module 4", purpose: "Decompose performance into allocation / selection / interaction", outputs: ["Allocation Effect", "Selection Effect", "Interaction Effect"] }
     ],
-    prompts: ["이번 월물 추천", "지금 추천 전략은?"]
+    prompts: ["이번 월물 추천", "지금 추천 전략은?", "과거 기준일로 다시 추천해줘"]
   };
 }
 
@@ -207,7 +226,7 @@ function renderToolCalls(response) {
     .map((call) => {
       const summary =
         call.agent === "Regime Agent"
-          ? `Regime: ${call.output.currentRegime}, Event Risk: ${call.output.eventRisk}, Confidence: ${Math.round(call.output.confidenceScore * 100)}%`
+          ? `Regime: ${call.output.currentRegime}, Event Risk: ${call.output.eventRisk}, Confidence: ${Math.round((call.output.confidenceScore || 0) * 100)}%`
           : call.agent === "Playbook Agent"
             ? `Top: ${call.output.topRecommended?.[0] || "-"}, Avoid: ${call.output.avoidNow?.[0] || "-"}, Score: ${call.output.strategyScore}`
             : call.agent === "Validation Agent"
@@ -222,7 +241,7 @@ function renderToolCalls(response) {
         <article class="trail-card">
           <strong>${escapeHtml(call.agent)}</strong>
           <p>${escapeHtml(summary)}</p>
-          <p style="margin-top:6px;color:var(--muted);font-size:12px;">retry ${call.retry_count || 0} · ${call.fallback_used ? "fallback used" : "normal"}</p>
+          <p style="margin-top:6px;color:var(--muted);font-size:12px;">retry ${call.retry_count || 0} / ${call.fallback_used ? "fallback used" : "normal"}</p>
         </article>
       `;
     })
@@ -259,7 +278,9 @@ function renderExecutionTrace(response) {
   const cards = [
     ["question", trace.question],
     ["intent", trace.intent],
-    ["selected_agents", Array.isArray(trace.selected_agents) ? trace.selected_agents.join(" → ") : ""],
+    ["date_hint", trace.date_hint || ""],
+    ["historical_mode", String(Boolean(trace.historical_mode))],
+    ["selected_agents", Array.isArray(trace.selected_agents) ? trace.selected_agents.join(" / ") : ""],
     ["tool_results", JSON.stringify((trace.tool_results || []).map((item) => ({
       agent: item.agent,
       retry_count: item.retry_count,
@@ -293,7 +314,7 @@ function renderMemoryList() {
     ? state.memory.slice(0, 6).map((entry) => `
         <article class="trail-card">
           <strong>${escapeHtml(entry.regime || "-")} / ${escapeHtml(entry.strategy || "-")}</strong>
-          <p>${escapeHtml(`${entry.result || "-"} · ${entry.timestamp ? fmtTime(entry.timestamp) : ""}`)}</p>
+          <p>${escapeHtml(`${entry.result || "-"} / ${entry.timestamp ? fmtTime(entry.timestamp) : ""}`)}</p>
         </article>
       `).join("")
     : `
@@ -349,7 +370,11 @@ function renderMetrics(response) {
   els.metricIntentNote.textContent = response?.recommended_strategy || response?.final_answer || "Ready";
   els.latencyLabel.textContent = response?.fallback_used ? "Fallback" : "API";
   els.updatedAt.textContent = response?.tool_results?.length ? fmtTime(new Date().toISOString()) : "Ready";
-  els.turnHint.textContent = response?.memory_used ? "Memory agent referenced prior JSON." : "Commander API is driving the flow.";
+  els.turnHint.textContent = response?.date_hint
+    ? `Historical mode enabled for ${response.date_hint}.`
+    : response?.memory_used
+      ? "Memory agent referenced prior JSON."
+      : "Commander API is driving the flow.";
 }
 
 function pushConversation(userText, response) {
@@ -369,7 +394,8 @@ function pushConversation(userText, response) {
 }
 
 function mockFallbackResponse(question) {
-  const isStrategy = /추천|전략|month|monthly|월물/i.test(question);
+  const dateHint = extractDateHint(els.asOfDateInput?.value || question);
+  const isStrategy = /추천|전략|month|monthly|strategy/i.test(question);
   const regime = isStrategy ? "Transition" : "Bull/Calm";
   const strategy = isStrategy ? "Iron Condor" : "Bull Call Spread";
   const validationLabel = isStrategy ? "REVIEW" : "PASS";
@@ -380,6 +406,17 @@ function mockFallbackResponse(question) {
     validation_label: validationLabel,
     timestamp: new Date().toISOString()
   };
+
+  const finalAnswer = [
+    "1. 결론",
+    `- 현재 시장 국면은 **${regime}**이며, 추천 전략 검토 대상은 **${strategy}**입니다.`,
+    `- 검증 결과는 **${validationLabel}**입니다.`,
+    "2. 근거",
+    "- Fallback mode에서 생성된 보수적 결과입니다.",
+    "- 추가 확인이 필요합니다.",
+    "3. 다음 안내",
+    "- 투자판단을 대신하지 않고 검토 후보로만 보아야 합니다."
+  ].join("\n");
 
   return {
     question,
@@ -401,10 +438,12 @@ function mockFallbackResponse(question) {
     core_risk: "Fallback mode uses a conservative REVIEW stance.",
     memory_used: true,
     memory_record: memoryRecord,
+    date_hint: dateHint,
+    historical_mode: Boolean(dateHint),
     retry_count: 0,
     fallback_used: true,
     failed_tools: ["commander-api"],
-    final_answer: `현재 시장 국면은 ${regime}입니다. 추천 전략 검토 대상은 ${strategy}이며, 검증 결과는 ${validationLabel}입니다. 핵심 리스크는 fallback mode에서 생성된 보수적 경고입니다. Memory 참고 여부: 참고함. 다음 검토 행동은 추가 검증입니다. 투자판단을 대신하지 않으며 검토 후보로만 보아야 합니다.`,
+    final_answer: finalAnswer,
     battle_plan: ["User Question", "Planner", "Regime Agent", "Playbook Agent", "Validation Agent", "Reflection Agent", "Memory Agent", "Final Answer"],
     trace: {
       question,
@@ -413,15 +452,18 @@ function mockFallbackResponse(question) {
       tool_results: [],
       validation_label: validationLabel,
       memory_used: true,
+      date_hint: dateHint,
+      historical_mode: Boolean(dateHint),
       retry_count: 0,
       fallback_used: true,
       failed_tools: ["commander-api"],
-      final_answer: `현재 시장 국면은 ${regime}입니다. 추천 전략 검토 대상은 ${strategy}이며, 검증 결과는 ${validationLabel}입니다. 핵심 리스크는 fallback mode에서 생성된 보수적 경고입니다. Memory 참고 여부: 참고함. 다음 검토 행동은 추가 검증입니다. 투자판단을 대신하지 않으며 검토 후보로만 보아야 합니다.`
+      final_answer: finalAnswer
     }
   };
 }
 
 async function callCommander(question) {
+  const dateHint = extractDateHint(els.asOfDateInput?.value || question);
   const response = await fetch("./api/commander", {
     method: "POST",
     headers: {
@@ -429,7 +471,11 @@ async function callCommander(question) {
     },
     body: JSON.stringify({
       question,
-      memory_records: state.memory
+      memory_records: state.memory,
+      hints: {
+        as_of_date: dateHint || null,
+        date_hint: dateHint || null
+      }
     })
   });
 
@@ -473,6 +519,9 @@ async function bootstrap() {
   state.registry = await loadRegistry();
   renderQuickPrompts(state.registry.prompts || []);
   els.questionInput.value = state.registry.prompts?.[0] || "이번 월물 추천";
+  if (els.asOfDateInput) {
+    els.asOfDateInput.value = "";
+  }
   renderMemoryList();
   renderTranscript();
   renderRegistry();
@@ -487,6 +536,9 @@ els.composer.addEventListener("submit", (event) => {
 els.resetBtn.addEventListener("click", () => {
   state.history = [];
   els.questionInput.value = "";
+  if (els.asOfDateInput) {
+    els.asOfDateInput.value = "";
+  }
   state.lastResponse = null;
   renderTranscript();
   renderRegistry();

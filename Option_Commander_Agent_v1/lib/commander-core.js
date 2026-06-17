@@ -17,7 +17,7 @@ export const DEFAULT_TOOL_REGISTRY = {
       agentId: "option-playbook",
       label: "Module 2",
       purpose: "Recommend option playbooks by regime",
-      triggers: ["strategy", "playbook", "option", "recommend", "hedge", "trade", "추천", "전략"],
+      triggers: ["strategy", "playbook", "option", "recommend", "hedge", "trade"],
       outputs: ["Top Recommended 9", "Avoid Now 6", "Strategy Score", "Risk Level", "Expected Return", "Playbook Mapping"]
     },
     {
@@ -26,7 +26,7 @@ export const DEFAULT_TOOL_REGISTRY = {
       agentId: "validation",
       label: "Module 3",
       purpose: "Red-team the candidate and label PASS/REVIEW/REJECT",
-      triggers: ["validation", "review", "reject", "pass", "backtest", "risk", "tail", "검증"],
+      triggers: ["validation", "review", "reject", "pass", "backtest", "risk", "tail"],
       outputs: ["PASS", "REVIEW", "REJECT", "Validation Score", "Risk Warning"]
     },
     {
@@ -35,7 +35,7 @@ export const DEFAULT_TOOL_REGISTRY = {
       agentId: "attribution",
       label: "Module 4",
       purpose: "Decompose performance into allocation / selection / interaction",
-      triggers: ["performance", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl", "성과"],
+      triggers: ["performance", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl"],
       outputs: ["Allocation Effect", "Selection Effect", "Interaction Effect", "Alpha Source", "Beta Source", "Update Signal"]
     },
     {
@@ -44,7 +44,7 @@ export const DEFAULT_TOOL_REGISTRY = {
       agentId: "reflection",
       label: "Reflection",
       purpose: "Self-review strategy result and trigger recheck when needed",
-      triggers: ["reflection", "self review", "review again", "risk high", "recheck", "self-check", "재검토"],
+      triggers: ["reflection", "self review", "review again", "risk high", "recheck", "self-check"],
       outputs: ["Risk Review", "Validation Trigger", "Revised Answer", "Residual Risk"]
     },
     {
@@ -53,16 +53,16 @@ export const DEFAULT_TOOL_REGISTRY = {
       agentId: "memory",
       label: "Memory",
       purpose: "Persist regime / strategy / result JSON",
-      triggers: ["memory", "remember", "save", "history", "store", "저장", "기억"],
+      triggers: ["memory", "remember", "save", "history", "store"],
       outputs: ["regime", "strategy", "result", "timestamp"]
     }
   ],
   prompts: [
     "이번 월물 추천",
     "지금 추천 전략은?",
-    "추천 결과를 다시 검토해줘",
-    "이 전략을 검증까지 해줘",
-    "성과가 왜 그렇게 나왔는지 분해해줘"
+    "검증 결과를 다시 확인해줘",
+    "성과 해석도 같이 보여줘",
+    "어제 기준으로 다시 추천해줘"
   ]
 };
 
@@ -72,12 +72,34 @@ export function normalize(text = "") {
   return String(text)
     .trim()
     .toLowerCase()
-    .replace(/[“”"'.!?,:;()[\]{}]/g, " ")
-    .replace(/\s+/g, " ");
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function unique(list) {
   return [...new Set(list)];
+}
+
+export function extractDateHint(value = "") {
+  const text = String(value || "");
+
+  const iso = text.match(/(20\d{2}-\d{2}-\d{2})/);
+  if (iso) return iso[1];
+
+  const dotted = text.match(/(20\d{2})[./](\d{1,2})[./](\d{1,2})/);
+  if (dotted) {
+    const [, year, month, day] = dotted;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  const korean = text.match(/(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+  if (korean) {
+    const [, year, month, day] = korean;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  return "";
 }
 
 export function getTool(registry, id) {
@@ -109,11 +131,13 @@ export function scoreKeywords(question, keywords) {
 export function buildPlannerDecision(question, registry = DEFAULT_TOOL_REGISTRY, memoryRecords = [], hints = {}) {
   const input = String(question || "").trim();
   const q = normalize(input);
+  const dateHint = extractDateHint(hints.as_of_date || hints.date_hint || input);
+  const historicalMode = Boolean(dateHint);
 
   const routeRules = [
     {
       intent: "Strategy",
-      keywords: ["추천", "전략", "월물", "playbook", "option", "trade", "포지션", "이번 월물", "지금 추천"],
+      keywords: ["추천", "전략", "playbook", "option", "trade", "전술", "월물", "이번 월물"],
       sequence: ["regime-agent", "playbook-agent", "validation-agent"],
       summary: "Strategy request: route through regime, playbook, then validation."
     },
@@ -125,25 +149,25 @@ export function buildPlannerDecision(question, registry = DEFAULT_TOOL_REGISTRY,
     },
     {
       intent: "Attribution",
-      keywords: ["성과", "분해", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl"],
+      keywords: ["성과", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl"],
       sequence: ["attribution-agent"],
       summary: "Attribution request: decompose performance and generate update signal."
     },
     {
       intent: "Reflection",
-      keywords: ["reflection", "self review", "재검토", "recheck", "다시 검토", "검토"],
+      keywords: ["reflection", "self review", "재점검", "recheck", "검토"],
       sequence: ["reflection-agent", "validation-agent"],
       summary: "Reflection request: self-review first, then recheck risk."
     },
     {
       intent: "Memory",
-      keywords: ["memory", "remember", "저장", "기억", "store", "history"],
+      keywords: ["memory", "remember", "저장", "history", "store"],
       sequence: ["memory-agent"],
       summary: "Memory request: store or recall JSON memory."
     },
     {
       intent: "Market Regime",
-      keywords: ["국면", "레짐", "변동성", "시장", "방향", "current", "now", "today"],
+      keywords: ["레짐", "시장", "변동성", "방향", "현재", "오늘", "지금"],
       sequence: ["regime-agent", "playbook-agent"],
       summary: "Regime request: interpret the market first."
     }
@@ -155,10 +179,10 @@ export function buildPlannerDecision(question, registry = DEFAULT_TOOL_REGISTRY,
     .sort((a, b) => b.hits - a.hits);
 
   let sequence = matched.flatMap((rule) => rule.sequence);
-  const wantsPerformance = q.includes("성과") || q.includes("분해") || q.includes("attribution");
+  const wantsPerformance = q.includes("성과") || q.includes("attribution");
   const wantsValidation = q.includes("검증") || q.includes("review") || q.includes("reject") || q.includes("pass");
-  const wantsMemory = q.includes("memory") || q.includes("remember") || q.includes("저장") || q.includes("기억");
-  const wantsReflection = q.includes("reflection") || q.includes("재검토") || q.includes("recheck") || q.includes("다시 검토");
+  const wantsMemory = q.includes("memory") || q.includes("remember") || q.includes("저장") || q.includes("history");
+  const wantsReflection = q.includes("reflection") || q.includes("재점검") || q.includes("recheck") || q.includes("검토");
   const hasHighEventRisk = normalize(hints.event_risk_hint) === "high" || q.includes("리스크");
 
   if (!sequence.length) sequence = q ? ["regime-agent", "playbook-agent", "validation-agent"] : ["regime-agent"];
@@ -205,28 +229,30 @@ export function buildPlannerDecision(question, registry = DEFAULT_TOOL_REGISTRY,
     })
     .filter(Boolean);
 
-  const executionPlan = sequence.map((id) => {
-    const tool = getTool(registry, id);
-    if (!tool) return null;
-    return {
-      agent: tool.name,
-      input: buildRouteInput(input, id, { memoryCue, hints, confidence, sequence, registry, memoryRecords }),
-      purpose: tool.purpose
-    };
-  }).filter(Boolean);
-
-  const fallbackPlan = buildFallbackPlan(sequence, confidence, memoryCue);
+  const executionPlan = sequence
+    .map((id) => {
+      const tool = getTool(registry, id);
+      if (!tool) return null;
+      return {
+        agent: tool.name,
+        input: buildRouteInput(input, id, { memoryCue, hints, confidence, sequence, registry, memoryRecords }),
+        purpose: tool.purpose
+      };
+    })
+    .filter(Boolean);
 
   return {
     question: input,
     intent,
     confidence,
+    date_hint: dateHint,
+    historical_mode: historicalMode,
     selected_agents: selectedTools.map((tool) => tool.name),
     selectedTools,
     selectedToolIds: sequence,
     reason: buildReasoning(sequence, matched, memoryCue, hints),
     execution_plan: executionPlan,
-    fallback_plan: fallbackPlan,
+    fallback_plan: buildFallbackPlan(sequence, confidence, memoryCue),
     memoryCue,
     hasHighEventRisk
   };
@@ -246,7 +272,7 @@ function computeConfidence(question, sequence, matched, hints = {}) {
   const signalCount = sequence.length + matched.reduce((sum, rule) => sum + rule.hits, 0);
   const clarityBoost = q.split(" ").filter(Boolean).length > 4 ? 0.06 : 0;
   const eventPenalty = normalize(hints.event_risk_hint) === "high" ? -0.08 : 0;
-  const score = 0.58 + Math.min(0.30, signalCount * 0.06 + clarityBoost + eventPenalty);
+  const score = 0.58 + Math.min(0.3, signalCount * 0.06 + clarityBoost + eventPenalty);
   return Math.max(0.45, Math.min(0.94, Number(score.toFixed(2))));
 }
 
@@ -254,6 +280,10 @@ function buildReasoning(sequence, matched, memoryCue, hints = {}) {
   const lines = [];
   const intentText = matched[0]?.summary || "Question is broad, so apply the default planner path.";
   lines.push(intentText);
+  const dateHint = extractDateHint(hints.as_of_date || hints.date_hint);
+  if (dateHint) {
+    lines.push(`Historical mode is enabled for the requested reference date ${dateHint}.`);
+  }
   if (sequence.includes("regime-agent")) lines.push("Regime Agent anchors the current market state.");
   if (sequence.includes("playbook-agent")) lines.push("Playbook Agent maps regime to candidate strategies.");
   if (sequence.includes("validation-agent")) lines.push("Validation Agent checks tail risk and labeling before final answer.");
@@ -266,12 +296,16 @@ function buildReasoning(sequence, matched, memoryCue, hints = {}) {
 }
 
 function buildRouteInput(question, toolId, context) {
+  const dateHint = extractDateHint(context.hints?.as_of_date || context.hints?.date_hint || question);
   const base = {
     question,
     memory_cue: context.memoryCue?.note || null,
     current_regime_hint: context.hints?.current_regime_hint || null,
     event_risk_hint: context.hints?.event_risk_hint || null,
-    confidence_hint: context.confidence
+    confidence_hint: context.confidence,
+    date_hint: dateHint || null,
+    as_of_date: dateHint || null,
+    historical_mode: Boolean(dateHint)
   };
 
   if (toolId === "regime-agent") return base;
@@ -311,6 +345,7 @@ function buildRouteInput(question, toolId, context) {
       validation_label: context.validationOutput?.label || context.finalLabel || null,
       confidence_score: context.confidence,
       event_risk: context.regimeOutput?.eventRisk || context.hints?.event_risk_hint || null,
+      date_hint: dateHint || null,
       timestamp: new Date().toISOString()
     };
   }
@@ -333,7 +368,7 @@ function buildFallbackPlan(sequence, confidence, memoryCue) {
   if (!sequence.includes("regime-agent")) fallback.push({ if: "regime_agent_missing", then: "Start from Regime Agent with a conservative default regime." });
   if (confidence < 0.7) fallback.push({ if: "low_confidence", then: "Insert Reflection Agent before final answer." });
   if (memoryCue?.shouldCaution) fallback.push({ if: "memory_loss_signal", then: "Force Validation Agent and keep result as REVIEW unless cleared." });
-  if (!fallback.length) fallback.push({ if: "agent_failure_or_low_confidence", then: "Fall back to Regime → Playbook → Validation and return REVIEW if uncertain." });
+  if (!fallback.length) fallback.push({ if: "agent_failure_or_low_confidence", then: "Fall back to Regime -> Playbook -> Validation and return REVIEW if uncertain." });
   return fallback;
 }
 
@@ -348,11 +383,14 @@ export function buildMockAgentOutputs(question, planner, memoryRecords = []) {
 }
 
 export function buildRegimeOutput(question, planner = {}) {
-  const highRisk = Boolean(planner.hasHighEventRisk) || Boolean(planner.memoryCue?.shouldCaution) || /risk|리스크|위험/i.test(question);
+  const dateHint = planner.date_hint || extractDateHint(question);
+  const highRisk = Boolean(planner.hasHighEventRisk) || Boolean(planner.memoryCue?.shouldCaution) || /risk|리스크|warning/i.test(question);
+
   return {
     currentRegime: highRisk ? "Transition" : "Bull/Calm",
     confidenceScore: highRisk ? 0.74 : 0.82,
     eventRisk: highRisk ? "high" : "medium",
+    asOfDate: dateHint,
     marketInterpretation: highRisk
       ? "Direction is mixed and event risk is elevated, so caution is needed."
       : "Trend is stable and risk is relatively manageable.",
@@ -362,7 +400,7 @@ export function buildRegimeOutput(question, planner = {}) {
   };
 }
 
-export function buildPlaybookOutput(question, regimeOutput = {}) {
+export function buildPlaybookOutput(question, regimeOutput = {}, planner = {}) {
   const highRisk = regimeOutput?.eventRisk === "high";
   return {
     topRecommended: highRisk
@@ -372,6 +410,7 @@ export function buildPlaybookOutput(question, regimeOutput = {}) {
     strategyScore: highRisk ? 86 : 92,
     riskLevel: highRisk ? "High" : "Medium",
     expectedReturn: highRisk ? "+9.8%" : "+12.4%",
+    asOfDate: regimeOutput?.asOfDate || planner.date_hint || extractDateHint(question),
     playbookMapping: `Strategy intent mapped from "${question}"`
   };
 }
@@ -386,6 +425,7 @@ export function buildValidationOutput(playbookOutput = {}, regimeOutput = {}, me
   return {
     label: risky ? "REVIEW" : "PASS",
     validationScore: risky ? 69 : 84,
+    asOfDate: regimeOutput?.asOfDate || playbookOutput?.asOfDate || "",
     riskWarning: risky
       ? "Risk is elevated. Validate tail risk and event sensitivity again."
       : "Risk is acceptable with current evidence.",
@@ -403,6 +443,7 @@ export function buildReflectionOutput(playbookOutput = {}, validationOutput = {}
   return {
     selfReview: risky ? "Risk is high enough to justify a recheck." : "Risk is acceptable after the first pass.",
     shouldRevalidate: risky,
+    asOfDate: validationOutput?.asOfDate || playbookOutput?.asOfDate || "",
     revisedDirection: risky ? "Keep the plan in REVIEW until the risk points are cleared." : "Proceed with current risk controls.",
     residualRisk: risky ? ["Tail risk", "Event sensitivity", "Memory-triggered caution"] : ["Normal market drift"]
   };
@@ -429,6 +470,38 @@ export function buildMemoryRecord(regimeOutput = {}, playbookOutput = {}, valida
   };
 }
 
+function buildStructuredFinalAnswer({ regime, strategy, validationLabel, risk, memoryUsed, dateHint, nextAction, memoryNote, attribution, historicalMode }) {
+  const dateLead = dateHint
+    ? `- 기준일 ${dateHint} 기준의 검토 결과입니다. 현재 시점과 다를 수 있으니 참고용으로 보아야 합니다.`
+    : "- 현재 기준의 검토 결과입니다.";
+
+  const lines = [
+    "1. 결론",
+    `- 현재 시장 국면은 **${regime}**이며, 추천 전략 검토 대상은 **${strategy}**입니다.`,
+    `- 검증 결과는 **${validationLabel}**입니다.`,
+    "2. 근거",
+    dateLead,
+    `- 핵심 리스크: ${risk}.`,
+    `- Memory 참고 여부: ${memoryUsed ? "있음" : "없음"}. ${memoryNote}`
+  ];
+
+  if (historicalMode) {
+    lines.push("- 과거 기준일이 입력되어, 현재가 아닌 해당 시점의 검토 관점으로 해석했습니다.");
+  }
+
+  if (attribution) {
+    lines.push(`- 성과 해석은 Allocation ${attribution.allocationEffect}, Selection ${attribution.selectionEffect}, Interaction ${attribution.interactionEffect}를 함께 봐야 합니다.`);
+  }
+
+  lines.push(
+    "3. 다음 안내",
+    `- ${nextAction}`,
+    "- 투자판단을 대신하지 않고 검토 후보로만 보아야 합니다."
+  );
+
+  return lines.join("\n");
+}
+
 export function buildFinalAnswer(question, planner, agentResults, memoryRecords = [], llmText = "") {
   const regime = agentResults.regime?.currentRegime || "Unknown";
   const strategy = agentResults.playbook?.topRecommended?.[0] || "No clear strategy";
@@ -438,14 +511,32 @@ export function buildFinalAnswer(question, planner, agentResults, memoryRecords 
   const memoryNote = memoryUsed
     ? "Memory was referenced from prior JSON records."
     : "No prior memory record was available.";
+  const dateHint = planner.date_hint || agentResults.regime?.asOfDate || agentResults.playbook?.asOfDate || "";
+  const nextAction =
+    planner.intent === "Attribution"
+      ? `다음 검토 행동은 ${agentResults.attribution?.updateSignal || "recheck"}입니다.`
+      : `다음 검토 행동은 ${agentResults.reflection?.revisedDirection || "risk review"}입니다.`;
 
-  if (llmText) {
-    return llmText;
+  const structured = buildStructuredFinalAnswer({
+    regime,
+    strategy,
+    validationLabel,
+    risk,
+    memoryUsed,
+    dateHint,
+    nextAction,
+    memoryNote,
+    attribution: planner.intent === "Attribution" ? agentResults.attribution : null,
+    historicalMode: Boolean(dateHint)
+  });
+
+  const raw = String(llmText || "").trim();
+  if (!raw) return structured;
+
+  const sections = raw.match(/(1\.\s*결론[\s\S]*?)(?:\n2\.\s*근거|\r?\n2\.\s*근거|$)/);
+  if (sections && raw.includes("2. 근거") && raw.includes("3. 다음")) {
+    return raw;
   }
 
-  if (planner.intent === "Attribution") {
-    return `현재 시장 국면은 ${regime}입니다. 추천 전략 검토 대상은 ${strategy}이며, 검증 결과는 ${validationLabel}입니다. 핵심 리스크는 ${risk}입니다. Memory 참고 여부: ${memoryUsed ? "참고함" : "없음"}. 다음 검토 행동은 ${agentResults.attribution?.updateSignal || "recheck"}입니다. 투자판단을 대신하지 않으며 검토 후보로만 보아야 합니다.`;
-  }
-
-  return `현재 시장 국면은 ${regime}입니다. 추천 전략 검토 대상은 ${strategy}이며, 검증 결과는 ${validationLabel}입니다. 핵심 리스크는 ${risk}입니다. Memory 참고 여부: ${memoryNote} 다음 검토 행동은 ${agentResults.reflection?.revisedDirection || "risk review"}입니다. 투자판단을 대신하지 않으며 검토 후보로만 보아야 합니다.`;
+  return structured;
 }

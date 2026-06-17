@@ -265,6 +265,25 @@
       gap: 10px;
       margin-top: 14px;
     }
+    .composer-meta {
+      display: grid;
+      gap: 6px;
+    }
+    .composer-meta label {
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--cobalt);
+    }
+    .composer-meta input {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px;
+      color: var(--ink);
+      background: #ffffff;
+      border: 3px solid var(--line);
+      border-radius: 12px;
+      outline: none;
+    }
     .composer textarea {
       width: 100%;
       min-height: 104px;
@@ -478,6 +497,7 @@
       color: var(--muted);
       line-height: 1.7;
       font-size: 13px;
+      white-space: pre-wrap;
     }
     .trail-card {
       padding: 14px;
@@ -571,6 +591,10 @@
         <div class="quick-prompts" id="quickPrompts" aria-label="quick prompts"></div>
         <form id="composer" class="composer">
           <textarea id="questionInput" placeholder="예: 이번 월물 추천"></textarea>
+          <div class="composer-meta">
+            <label for="asOfDateInput">기준일(선택)</label>
+            <input id="asOfDateInput" type="date" />
+          </div>
           <div class="composer-actions">
             <button class="primary-btn" type="submit">Commander 실행</button>
             <button class="ghost-btn" id="resetBtn" type="button">초기화</button>

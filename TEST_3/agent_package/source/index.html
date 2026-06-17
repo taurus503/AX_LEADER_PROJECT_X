@@ -1,0 +1,1127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>6조 Codex 3 Validation Lite Agent</title>
+  <style>
+    :root {
+      --bg: #f2f3f5;
+      --panel: #ffffff;
+      --ink: #111111;
+      --muted: #555b63;
+      --line: #1f2933;
+      --hairline: #c9cdd2;
+      --blue: #174ea6;
+      --teal: #006d6f;
+      --crimson: #b00020;
+      --blue-soft: #eef3fb;
+      --teal-soft: #e8f3f2;
+      --crimson-soft: #fbeaec;
+      --amber: #8a5a00;
+      --amber-soft: #fff3d6;
+      --slate: #20242a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    header {
+      background: var(--panel);
+      color: var(--ink);
+      padding: 24px 30px 22px;
+      border-bottom: 6px solid var(--blue);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.25;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 1120px;
+      overflow-wrap: anywhere;
+    }
+
+    main {
+      width: min(1440px, calc(100vw - 40px));
+      margin: 22px auto 34px;
+      display: grid;
+      grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.35fr);
+      gap: 18px;
+      min-width: 0;
+    }
+
+    section,
+    .panel {
+      background: var(--panel);
+      border: 2px solid var(--line);
+      border-radius: 0;
+      min-width: 0;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 14px;
+      font-size: 18px;
+      line-height: 1.3;
+      font-weight: 800;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .section-title::before {
+      content: "";
+      display: inline-block;
+      width: 16px;
+      height: 24px;
+      border-radius: 0;
+      background: var(--teal);
+      flex: 0 0 auto;
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--slate);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    select,
+    input,
+    textarea {
+      width: 100%;
+      border: 2px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 0;
+      padding: 7px 9px;
+      font: inherit;
+      font-size: 13px;
+      line-height: 1.35;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 64px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    select:focus,
+    input:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: none;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .check-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid var(--line);
+      border-radius: 0;
+      padding: 7px 9px;
+      background: #f8f9fa;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--slate);
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+    }
+
+    .toggle input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+
+    button {
+      border: 2px solid var(--line);
+      border-radius: 0;
+      padding: 11px 14px;
+      background: var(--blue);
+      color: #fff;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #fff;
+      color: var(--ink);
+      border: 2px solid var(--line);
+    }
+
+    button:hover {
+      filter: none;
+      background: var(--teal);
+      color: #fff;
+    }
+
+    .status-card {
+      padding: 18px;
+      border-radius: 0;
+      border: 2px solid var(--line);
+      background: #fff;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .status-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    .status-head h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .status-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 94px;
+      height: 34px;
+      border-radius: 0;
+      padding: 0 12px;
+      font-size: 14px;
+      font-weight: 900;
+      white-space: nowrap;
+      align-self: start;
+    }
+
+    .badge.approve {
+      color: #fff;
+      background: var(--teal);
+      border: 2px solid var(--teal);
+    }
+
+    .badge.review {
+      color: var(--amber);
+      background: var(--amber-soft);
+      border: 2px solid var(--amber);
+    }
+
+    .badge.reject {
+      color: #fff;
+      background: var(--crimson);
+      border: 2px solid var(--crimson);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .metric {
+      border: 2px solid var(--line);
+      border-radius: 0;
+      background: #f8f9fa;
+      padding: 11px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 16px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .note-block {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .note {
+      border: 2px solid var(--line);
+      border-left: 8px solid var(--blue);
+      background: #f8f9fa;
+      border-radius: 0;
+      padding: 12px 14px;
+      line-height: 1.55;
+      font-size: 14px;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+    }
+
+    .note strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .plain-list {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.55;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+    }
+
+    .plain-list li + li {
+      margin-top: 4px;
+    }
+
+    details {
+      border: 2px solid var(--line);
+      background: #f8f9fa;
+      margin-top: 10px;
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 10px 14px 4px;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--ink);
+      list-style-position: inside;
+    }
+
+    .details-body {
+      padding: 0 14px 12px 14px;
+      line-height: 1.55;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+    }
+
+    .risk-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .risk-list li {
+      border: 2px solid var(--line);
+      background: #fff;
+      border-radius: 0;
+      padding: 8px 10px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      border: 2px solid var(--line);
+      border-radius: 0;
+      background: #111111;
+      color: #f3f4f6;
+      line-height: 1.55;
+      overflow: auto;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-width: 100%;
+    }
+
+    .helper {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      margin: 4px 0 0;
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+      clear: both;
+    }
+
+    #dataAsOf {
+      min-height: 34px;
+      padding: 7px 9px;
+      background: #f8f9fa;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    .preset-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .preset {
+      border: 2px solid var(--line);
+      background: #fff;
+      border-radius: 0;
+      padding: 10px 11px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--ink);
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .preset strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 3px;
+      overflow-wrap: anywhere;
+    }
+
+    .preset span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .preset.active {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+      box-shadow: inset 6px 0 0 var(--blue);
+    }
+
+    @media (max-width: 980px) {
+      main {
+        grid-template-columns: 1fr;
+        width: min(100vw - 24px, 760px);
+      }
+
+      .metric-grid,
+      .grid-2,
+      .check-row,
+      .review-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 1180px) {
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      header {
+        padding: 18px 16px;
+      }
+
+      header h1 {
+        font-size: 22px;
+      }
+
+      main {
+        width: calc(100vw - 18px);
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .status-head,
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>6조 Codex 3 - Validation Lite Agent</h1>
+    <p>최종 URL의 Option Playbook Advisor에 붙일 1차 검증 Agent입니다. 전략을 새로 추천하지 않고, Codex 1의 전략 후보에 검토 가능 / 재검토 / 제외 권고 라벨을 붙입니다.</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2 class="section-title">입력값</h2>
+      <div class="stack">
+        <div>
+          <label for="strategySelect">전략 선택</label>
+          <select id="strategySelect"></select>
+          <p class="helper">현재 배포 화면에서 자주 보이는 전략을 기본값으로 넣었습니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label for="direction">방향성</label>
+            <select id="direction">
+              <option value="Neutral">Neutral - 중립</option>
+              <option value="Bullish">Bullish - 상승</option>
+              <option value="Bearish">Bearish - 하락</option>
+              <option value="Range">Range - 횡보</option>
+            </select>
+          </div>
+          <div>
+            <label for="volatility">변동성</label>
+            <select id="volatility">
+              <option value="High">High - 높음</option>
+              <option value="Medium">Medium - 보통</option>
+              <option value="Low">Low - 낮음</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label for="eventRisk">이벤트 리스크</label>
+            <select id="eventRisk">
+              <option value="High">High - 높음</option>
+              <option value="Medium">Medium - 보통</option>
+              <option value="Low">Low - 낮음</option>
+            </select>
+          </div>
+          <div>
+            <label for="confidence">시장 판단 확신도</label>
+            <select id="confidence">
+              <option value="Low">Low - 낮음</option>
+              <option value="Medium">Medium - 보통</option>
+              <option value="High">High - 높음</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label for="score">Codex 1 전략 점수</label>
+            <input id="score" type="number" min="0" max="100" step="1" value="100" />
+          </div>
+          <div>
+            <label for="category">Codex 1 분류</label>
+            <select id="category">
+              <option value="Top Recommended">Top Recommended</option>
+              <option value="Watchlist">Watchlist</option>
+              <option value="Avoid Now">Avoid Now</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="check-row">
+          <label class="toggle">
+            <input id="backtestAvailable" type="checkbox" checked />
+            백테스트 근거 있음
+          </label>
+          <label class="toggle">
+            <input id="maxLossDefined" type="checkbox" checked />
+            최대손실 제한됨
+          </label>
+        </div>
+
+        <div>
+          <label for="advisorReason">Codex 1 추천/회피 사유</label>
+          <textarea id="advisorReason">방향성은 불확실하지만 큰 변동 가능성이 있어 검토 후보입니다.</textarea>
+        </div>
+
+        <div>
+          <label for="dataAsOf">데이터 기준</label>
+          <input id="dataAsOf" type="text" value="최종 URL 화면 기준 · 2026-06-12 종가 기준" />
+          <p class="helper">사용자 질문 “이 결과가 최신 데이터 기준인지 확인해줘”에 대응하기 위한 표시입니다.</p>
+        </div>
+
+        <div class="actions">
+          <button id="validateBtn" type="button">검증 실행</button>
+          <button id="resetBtn" class="secondary" type="button">최종 URL 기본값</button>
+        </div>
+
+        <div>
+          <h3 class="section-title">빠른 예시</h3>
+          <div id="presetList" class="preset-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">Codex 3 검증 결과</h2>
+      <div id="resultCard" class="status-card"></div>
+      <div class="note-block">
+        <div>
+          <h3 class="section-title">Codex 1 통합용 JSON</h3>
+          <pre id="jsonOutput"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const strategyProfiles = {
+      "Long Straddle": {
+        category: "Top Recommended",
+        score: 100,
+        complexity: "Medium",
+        maxLossDefined: true,
+        backtestAvailable: true,
+        fit: { volatility: ["High"], direction: ["Neutral"], eventRisk: ["High", "Medium"] },
+        summary: {
+          plain: "콜과 풋을 동시에 사서, 방향은 몰라도 시장이 크게 움직이면 유리한 전략입니다.",
+          bestWhen: "변동성이 높고 방향성이 불확실할 때",
+          watchOut: "시장 움직임이 작거나 이벤트 이후 변동성이 급락하면 손실이 날 수 있습니다."
+        },
+        risks: ["이벤트 이후 변동성 급락 위험", "시간가치 손실 위험", "큰 가격 변동이 발생해야 유리"],
+        beginnerNote: "방향을 맞추지 않아도 되지만, 시장이 크게 움직이지 않으면 옵션값이 줄어 손실이 날 수 있습니다.",
+        committeeNote: "현재 고변동·이벤트 리스크 구간에서는 검토 후보로 볼 수 있으나, 이벤트 이후 변동성 하락과 시간가치 손실을 추가 확인해야 합니다."
+      },
+      "Long Strangle": {
+        category: "Top Recommended",
+        score: 100,
+        complexity: "Medium",
+        maxLossDefined: true,
+        backtestAvailable: true,
+        fit: { volatility: ["High"], direction: ["Neutral"], eventRisk: ["High", "Medium"] },
+        summary: {
+          plain: "콜과 풋을 동시에 사되 더 먼 행사가를 사용해 비용은 낮추고, 더 큰 움직임을 기대하는 전략입니다.",
+          bestWhen: "큰 이벤트 전후로 방향은 불확실하지만 큰 변동이 예상될 때",
+          watchOut: "Straddle보다 더 크게 움직여야 수익 구간에 들어갈 수 있습니다."
+        },
+        risks: ["더 큰 가격 변동 필요", "시간가치 손실 위험", "손익분기점 도달 불확실성"],
+        beginnerNote: "Straddle보다 비용은 낮을 수 있지만, 수익이 나려면 시장이 더 크게 움직여야 합니다.",
+        committeeNote: "고변동 국면과는 부합하나 손익분기점 도달 가능성과 이벤트 이후 변동성 하락을 추가 검토해야 합니다."
+      },
+      "Call Backspread": {
+        category: "Top Recommended",
+        score: 80,
+        complexity: "High",
+        maxLossDefined: false,
+        backtestAvailable: true,
+        fit: { volatility: ["High"], direction: ["Bullish"], eventRisk: ["High", "Medium"] },
+        summary: {
+          plain: "콜 옵션을 조합해 시장이 크게 오를 때 유리하도록 만든 상방 급등 대응 전략입니다.",
+          bestWhen: "상승 방향성이 강하고 급등 가능성이 있을 때",
+          watchOut: "시장이 애매하게 오르거나 방향이 빗나가면 손익이 불리해질 수 있습니다."
+        },
+        risks: ["상방 급등 필요", "구조 복잡도 높음", "방향성 오판 위험"],
+        beginnerNote: "시장이 크게 오르면 유리할 수 있지만, 애매하게 움직이면 손익이 불리해질 수 있는 복잡한 전략입니다.",
+        committeeNote: "상방 급등 가능성을 전제로 한 전략이므로 현재 중립적 방향성에서는 재검토 대상으로 분류하는 것이 적절합니다."
+      },
+      "Put Backspread": {
+        category: "Top Recommended",
+        score: 80,
+        complexity: "High",
+        maxLossDefined: false,
+        backtestAvailable: true,
+        fit: { volatility: ["High"], direction: ["Bearish"], eventRisk: ["High", "Medium"] },
+        summary: {
+          plain: "풋 옵션을 조합해 시장이 크게 내릴 때 유리하도록 만든 하방 급락 대응 전략입니다.",
+          bestWhen: "하락 방향성이 강하고 급락 가능성이 있을 때",
+          watchOut: "시장이 애매하게 내리거나 반등하면 손익이 불리해질 수 있습니다."
+        },
+        risks: ["하방 급락 필요", "구조 복잡도 높음", "방향성 오판 위험"],
+        beginnerNote: "시장이 크게 하락하면 유리할 수 있지만, 애매하게 움직이면 손익이 불리해질 수 있습니다.",
+        committeeNote: "하방 급락 가능성을 전제로 하므로 중립적 방향성에서는 재검토가 필요합니다."
+      },
+      "Covered Call": {
+        category: "Avoid Now",
+        score: 12,
+        complexity: "Low",
+        maxLossDefined: false,
+        backtestAvailable: true,
+        fit: { volatility: ["Low", "Medium"], direction: ["Bullish", "Range"], eventRisk: ["Low", "Medium"] },
+        summary: {
+          plain: "보유자산에 콜을 팔아 프리미엄을 받지만, 큰 상승 이익은 제한되는 전략입니다.",
+          bestWhen: "완만한 상승 또는 횡보가 예상될 때",
+          watchOut: "시장이 크게 오르면 상승 이익이 제한되고, 하락하면 보유자산 손실이 발생할 수 있습니다."
+        },
+        risks: ["급등 시 상승 이익 제한", "고변동 국면 부적합", "보유자산 하락 위험"],
+        beginnerNote: "프리미엄을 받을 수 있지만, 시장이 크게 오르면 이익이 제한되고 시장이 떨어지면 보유자산 손실이 발생할 수 있습니다.",
+        committeeNote: "현재 고변동·이벤트 리스크 환경에서는 상승/하락 변동성이 모두 열려 있어 Covered Call은 우선순위에서 제외하는 것이 적절합니다."
+      },
+      "Iron Condor": {
+        category: "Avoid Now",
+        score: 20,
+        complexity: "High",
+        maxLossDefined: true,
+        backtestAvailable: true,
+        fit: { volatility: ["Low"], direction: ["Range"], eventRisk: ["Low"] },
+        summary: {
+          plain: "시장 가격이 일정 범위 안에 머물면 프리미엄 수익을 기대하는 범위형 전략입니다.",
+          bestWhen: "변동성이 낮고 횡보 가능성이 높을 때",
+          watchOut: "이벤트로 시장이 크게 움직여 범위를 벗어나면 손실 위험이 커집니다."
+        },
+        risks: ["큰 변동 발생 시 손실 위험", "이벤트 리스크 구간 부적합", "범위 이탈 위험"],
+        beginnerNote: "시장이 일정 범위 안에 머물러야 유리한 전략이라, 이벤트로 크게 움직이는 날에는 위험할 수 있습니다.",
+        committeeNote: "현재 변동성과 이벤트 리스크가 높은 환경에서는 범위형 수익 전략인 Iron Condor의 적합성이 낮습니다."
+      },
+      "Cash Secured Put": {
+        category: "Watchlist",
+        score: 35,
+        complexity: "Medium",
+        maxLossDefined: false,
+        backtestAvailable: true,
+        fit: { volatility: ["Low", "Medium"], direction: ["Bullish", "Range"], eventRisk: ["Low", "Medium"] },
+        summary: {
+          plain: "정해둔 가격에 살 준비를 하고 풋을 팔아 프리미엄을 받는 조건부 매수형 전략입니다.",
+          bestWhen: "매수하고 싶은 가격이 있고 시장 급락 가능성이 낮을 때",
+          watchOut: "시장이 크게 하락하면 배정 가능성과 손실 부담이 커질 수 있습니다."
+        },
+        risks: ["급락 시 손실 확대 위험", "배정 가능성", "현금 준비 필요"],
+        beginnerNote: "정해둔 가격까지 내려오면 살 준비를 하는 전략이지만, 시장이 크게 하락하면 손실 부담이 커질 수 있습니다.",
+        committeeNote: "급락 리스크와 배정 가능성이 있어 고변동 이벤트 구간에서는 재검토가 필요합니다."
+      }
+    };
+
+    const strategySelect = document.getElementById("strategySelect");
+    const presetList = document.getElementById("presetList");
+    const controls = {
+      direction: document.getElementById("direction"),
+      volatility: document.getElementById("volatility"),
+      eventRisk: document.getElementById("eventRisk"),
+      confidence: document.getElementById("confidence"),
+      score: document.getElementById("score"),
+      category: document.getElementById("category"),
+      backtestAvailable: document.getElementById("backtestAvailable"),
+      maxLossDefined: document.getElementById("maxLossDefined"),
+      advisorReason: document.getElementById("advisorReason"),
+      dataAsOf: document.getElementById("dataAsOf")
+    };
+
+    function initOptions() {
+      Object.keys(strategyProfiles).forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        strategySelect.appendChild(option);
+
+        const preset = document.createElement("button");
+        preset.type = "button";
+        preset.className = "preset";
+        preset.dataset.strategy = name;
+        preset.innerHTML = `<strong>${name}</strong><span>${strategyProfiles[name].risks.slice(0, 2).join(" · ")}</span>`;
+        preset.addEventListener("click", () => {
+          strategySelect.value = name;
+          applyStrategyProfile(name);
+          validateAndRender();
+        });
+        presetList.appendChild(preset);
+      });
+    }
+
+    function applyStrategyProfile(name) {
+      const profile = strategyProfiles[name];
+      controls.score.value = profile.score;
+      controls.category.value = profile.category;
+      controls.backtestAvailable.checked = profile.backtestAvailable;
+      controls.maxLossDefined.checked = profile.maxLossDefined;
+      controls.advisorReason.value = profile.committeeNote;
+      presetList.querySelectorAll(".preset").forEach((item) => {
+        item.classList.toggle("active", item.dataset.strategy === name);
+      });
+    }
+
+    function getMarketView() {
+      return {
+        direction: controls.direction.value,
+        volatility: controls.volatility.value,
+        eventRisk: controls.eventRisk.value,
+        confidence: controls.confidence.value,
+        source: "Codex 2 Regime & Market View",
+        dataAsOf: controls.dataAsOf.value
+      };
+    }
+
+    function getStrategyInput() {
+      const name = strategySelect.value;
+      const profile = strategyProfiles[name];
+      return {
+        name,
+        score: Number(controls.score.value || 0),
+        category: controls.category.value,
+        backtestAvailable: controls.backtestAvailable.checked,
+        maxLossDefined: controls.maxLossDefined.checked,
+        complexity: profile.complexity,
+        advisorReason: controls.advisorReason.value
+      };
+    }
+
+    function includesFit(list, value) {
+      return Array.isArray(list) && list.includes(value);
+    }
+
+    function validateStrategy(marketView, strategy) {
+      const profile = strategyProfiles[strategy.name];
+      const riskFlags = new Set(profile.risks);
+      let penalty = 0;
+      let positive = 0;
+
+      const fitsVol = includesFit(profile.fit.volatility, marketView.volatility);
+      const fitsDirection = includesFit(profile.fit.direction, marketView.direction);
+      const fitsEvent = includesFit(profile.fit.eventRisk, marketView.eventRisk);
+
+      if (fitsVol) positive += 2;
+      else {
+        penalty += 2;
+        riskFlags.add("현재 변동성 환경과 전략 구조 불일치");
+      }
+
+      if (fitsDirection) positive += 2;
+      else {
+        penalty += 2;
+        riskFlags.add("방향성 오판 위험");
+      }
+
+      if (fitsEvent) positive += 1;
+      else {
+        penalty += 1;
+        riskFlags.add("현재 이벤트 리스크와 전략 조건 불일치");
+      }
+
+      if (!strategy.backtestAvailable) {
+        penalty += 4;
+        riskFlags.add("백테스트 근거 부족");
+      } else {
+        positive += 1;
+      }
+
+      if (!strategy.maxLossDefined) {
+        penalty += 3;
+        riskFlags.add("최대손실 불명확");
+      } else {
+        positive += 1;
+      }
+
+      if (marketView.confidence === "Low") {
+        penalty += 2;
+        riskFlags.add("시장 판단 확신도 낮음");
+      }
+
+      if (marketView.eventRisk === "High" && marketView.volatility === "High") {
+        penalty += 1;
+        riskFlags.add("이벤트 이후 변동성 급락 위험");
+      }
+
+      if (strategy.complexity === "High") {
+        penalty += 1;
+        riskFlags.add("전략 구조 복잡도 높음");
+      }
+
+      if (strategy.category === "Avoid Now") {
+        penalty += 2;
+        riskFlags.add("Codex 1 회피 전략 분류");
+      }
+
+      if (strategy.score >= 80) positive += 1;
+      if (strategy.score < 40) penalty += 1;
+
+      let validationStatus = "Review";
+      if (penalty >= 7 || (!strategy.backtestAvailable && !strategy.maxLossDefined)) {
+        validationStatus = "Reject";
+      } else if (positive >= 6 && penalty <= 2) {
+        validationStatus = "Approve";
+      }
+
+      const forcedReviewReasons = [];
+      if (validationStatus === "Approve" && marketView.confidence === "Low") {
+        validationStatus = "Review";
+        forcedReviewReasons.push("Codex 2 시장 판단 확신도가 낮아 검토 가능으로 올리지 않음");
+      }
+      if (validationStatus === "Approve" && marketView.eventRisk === "High" && strategy.complexity !== "Low") {
+        validationStatus = "Review";
+        forcedReviewReasons.push("이벤트 리스크가 높아 복잡 전략은 재검토로 제한");
+      }
+      forcedReviewReasons.forEach((reason) => riskFlags.add(reason));
+
+      const statusLabelMap = {
+        Approve: "검토 가능",
+        Review: "재검토",
+        Reject: "제외 권고"
+      };
+
+      const riskLevel = validationStatus === "Approve" ? "Low" : validationStatus === "Reject" ? "High" : penalty >= 5 ? "High" : "Medium";
+      const riskFlagList = Array.from(riskFlags).slice(0, 6);
+      const marketAlignment = buildMarketAlignment(marketView, profile, {
+        fitsVol,
+        fitsDirection,
+        fitsEvent
+      });
+      const integrationHint = buildIntegrationHint(validationStatus, riskLevel, riskFlagList);
+
+      const beginnerNote = buildBeginnerNote(strategy.name, validationStatus, riskFlagList, profile);
+      const committeeNote = buildCommitteeNote(strategy.name, validationStatus, marketView, riskFlagList, profile);
+
+      return {
+        strategyName: strategy.name,
+        strategySummary: profile.summary,
+        validationStatus,
+        statusLabel: statusLabelMap[validationStatus],
+        riskLevel,
+        riskFlags: riskFlagList,
+        marketAlignment,
+        integrationHint,
+        beginnerNote,
+        committeeNote
+      };
+    }
+
+    function labelValue(value) {
+      const labels = {
+        Neutral: "중립",
+        Bullish: "상승",
+        Bearish: "하락",
+        Range: "횡보",
+        High: "높음",
+        Medium: "보통",
+        Low: "낮음"
+      };
+      return labels[value] || value;
+    }
+
+    function buildMarketAlignment(marketView, profile, fits) {
+      return {
+        source: "Codex 2 Market View",
+        summary: `방향성 ${labelValue(marketView.direction)}, 변동성 ${labelValue(marketView.volatility)}, 이벤트 리스크 ${labelValue(marketView.eventRisk)}, 확신도 ${labelValue(marketView.confidence)}`,
+        checks: [
+          {
+            item: "변동성 적합성",
+            passed: fits.fitsVol,
+            note: fits.fitsVol ? "현재 변동성 조건과 전략 구조가 맞습니다." : "현재 변동성 조건과 전략 구조가 맞지 않습니다."
+          },
+          {
+            item: "방향성 적합성",
+            passed: fits.fitsDirection,
+            note: fits.fitsDirection ? "현재 방향성 판단과 전략 구조가 맞습니다." : "현재 방향성 판단과 전략 구조가 어긋납니다."
+          },
+          {
+            item: "이벤트 리스크 적합성",
+            passed: fits.fitsEvent,
+            note: fits.fitsEvent ? "현재 이벤트 리스크 수준에서 검토 가능한 전략입니다." : "현재 이벤트 리스크 수준에서는 주의가 필요합니다."
+          }
+        ]
+      };
+    }
+
+    function buildIntegrationHint(status, riskLevel, risks) {
+      const toneMap = {
+        Approve: "teal",
+        Review: "amber",
+        Reject: "crimson"
+      };
+      const sortWeightMap = {
+        Approve: 1,
+        Review: 2,
+        Reject: 3
+      };
+      return {
+        targetSlot: "strategy-card-validation",
+        badgeTone: toneMap[status],
+        sortWeight: sortWeightMap[status],
+        oneLineForCard: risks.length ? risks[0] : "추가 위험 요인 없음",
+        codex1Action: status === "Reject" ? "전략 카드 하단에 제외 권고로 표시" : "전략 카드 하단에 검증 라벨로 표시",
+        riskLevel
+      };
+    }
+
+    function buildBeginnerNote(name, status, risks, profile) {
+      if (status === "Approve") {
+        return `${name}은 현재 시장조건과 비교적 잘 맞고, 주요 위험도 확인 가능한 범위에 있어 검토자료로 올려볼 수 있습니다.`;
+      }
+      if (status === "Reject") {
+        return `${name}은 현재 시장상태와 맞지 않거나 위험 확인이 부족해 지금은 먼저 보기 어려운 전략입니다.`;
+      }
+      return profile.beginnerNote || `${name}은 가능성은 있지만 ${risks[0] || "추가 위험"} 때문에 한 번 더 확인해야 합니다.`;
+    }
+
+    function buildCommitteeNote(name, status, marketView, risks, profile) {
+      const marketText = `현재 ${marketView.volatility} 변동성, ${marketView.eventRisk} 이벤트 리스크, ${marketView.confidence} 확신도 환경`;
+      if (status === "Approve") {
+        return `${marketText}에서 ${name}은 검토 가능 후보입니다. 다만 본 판정은 투자 승인이 아니라 1차 검토 라벨입니다.`;
+      }
+      if (status === "Reject") {
+        return `${marketText}에서는 ${name}의 적합성이 낮습니다. 주요 사유는 ${risks.slice(0, 3).join(", ")}입니다.`;
+      }
+      return profile.committeeNote || `${marketText}에서 ${name}은 재검토 대상입니다. 주요 사유는 ${risks.slice(0, 3).join(", ")}입니다.`;
+    }
+
+    function renderResult(result, marketView, strategy) {
+      const badgeClass = result.validationStatus.toLowerCase();
+      const resultCard = document.getElementById("resultCard");
+      resultCard.innerHTML = `
+        <div class="status-head">
+          <div>
+            <h2>${result.strategyName}</h2>
+            <p>Codex 3은 추천을 새로 만들지 않고, 현재 전략 후보에 검증 라벨만 붙입니다.</p>
+          </div>
+          <span class="badge ${badgeClass}">${result.statusLabel}</span>
+        </div>
+        <div class="metric-grid">
+          <div class="metric"><span>Risk Level</span><strong>${result.riskLevel}</strong></div>
+          <div class="metric"><span>Volatility</span><strong>${marketView.volatility}</strong></div>
+          <div class="metric"><span>Event Risk</span><strong>${marketView.eventRisk}</strong></div>
+          <div class="metric"><span>Confidence</span><strong>${marketView.confidence}</strong></div>
+        </div>
+        <ul class="risk-list">
+          ${result.riskFlags.map((risk) => `<li>${risk}</li>`).join("")}
+        </ul>
+        <div class="note-block">
+          <div class="note">
+            <strong>전략 요약</strong>
+            ${result.strategySummary.plain}
+          </div>
+          <div class="review-grid">
+            <div class="note">
+              <strong>유리한 상황</strong>
+              ${result.strategySummary.bestWhen}
+            </div>
+            <div class="note">
+              <strong>주의할 점</strong>
+              ${result.strategySummary.watchOut}
+            </div>
+          </div>
+        </div>
+        <div class="review-grid">
+          <div class="note">
+            <strong>Codex 2 시장상태 반영</strong>
+            <ul class="plain-list">
+              ${result.marketAlignment.checks.map((check) => `<li>${check.item}: ${check.passed ? "통과" : "주의"} - ${check.note}</li>`).join("")}
+            </ul>
+          </div>
+          <div class="note">
+            <strong>Codex 1 통합 힌트</strong>
+            <ul class="plain-list">
+              <li>표시 위치: ${result.integrationHint.targetSlot}</li>
+              <li>카드 한 줄: ${result.integrationHint.oneLineForCard}</li>
+              <li>통합 액션: ${result.integrationHint.codex1Action}</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note-block">
+          <div class="note"><strong>투자위원회 검토 문구</strong>${result.committeeNote}</div>
+          <details>
+            <summary>초보자용 설명 열기</summary>
+            <div class="details-body">${result.beginnerNote}</div>
+          </details>
+        </div>
+      `;
+
+      const integrationJson = {
+        contract: {
+          name: "Codex3ValidationLite",
+          version: "1.1",
+          owner: "Codex 3",
+          consumer: "Codex 1 Option Advisor Core"
+        },
+        marketView,
+        sourceStrategy: {
+          name: strategy.name,
+          score: strategy.score,
+          category: strategy.category,
+          advisorReason: strategy.advisorReason
+        },
+        validationLite: result
+      };
+      document.getElementById("jsonOutput").textContent = JSON.stringify(integrationJson, null, 2);
+    }
+
+    function validateAndRender() {
+      const marketView = getMarketView();
+      const strategy = getStrategyInput();
+      const result = validateStrategy(marketView, strategy);
+      renderResult(result, marketView, strategy);
+    }
+
+    function resetToFinalUrlDefaults() {
+      controls.direction.value = "Neutral";
+      controls.volatility.value = "High";
+      controls.eventRisk.value = "High";
+      controls.confidence.value = "Low";
+      strategySelect.value = "Long Straddle";
+      applyStrategyProfile("Long Straddle");
+      validateAndRender();
+    }
+
+    strategySelect.addEventListener("change", () => {
+      applyStrategyProfile(strategySelect.value);
+      validateAndRender();
+    });
+    Object.values(controls).forEach((control) => {
+      control.addEventListener("change", validateAndRender);
+      control.addEventListener("input", validateAndRender);
+    });
+    document.getElementById("validateBtn").addEventListener("click", validateAndRender);
+    document.getElementById("resetBtn").addEventListener("click", resetToFinalUrlDefaults);
+
+    initOptions();
+    resetToFinalUrlDefaults();
+  </script>
+</body>
+</html>

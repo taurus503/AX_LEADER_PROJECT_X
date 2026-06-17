@@ -1,0 +1,11 @@
+{
+  "name": "codex3-validation-lite",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "vercel --prod"
+  },
+  "devDependencies": {
+    "vercel": "^54.14.0"
+  }
+}

@@ -1,0 +1,9 @@
+.env
+.env.*
+supabase-access-token.txt
+config.js
+!api/config.js
+ml/hana_classifier_dataset.csv
+ml/mockup_server*.log
+node_modules
+.git

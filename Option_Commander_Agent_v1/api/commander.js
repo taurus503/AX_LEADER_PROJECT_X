@@ -60,20 +60,23 @@ async function generateLLMFinalAnswer(context) {
   const model = process.env.BIZROUTER_MODEL || process.env.OPENAI_MODEL || process.env.LLM_MODEL || "openai/gpt-5.4.mini";
   const prompt = [
     "You are the final answer synthesizer for Option Commander Agent.",
-    "Write a concise operational response with these exact sections:",
-    "1. 현재 시장 국면",
-    "2. 추천 전략",
-    "3. 검증 결과",
-    "4. 핵심 리스크",
-    "5. Memory 참고 여부",
-    "6. 다음 검토 행동",
-    "The answer must say this is for review support, not investment instruction.",
-    "Use the provided JSON context only."
+    "Use only the provided JSON context. Do not invent tool outputs, market data, or conclusions.",
+    "Write a concise operational answer in Korean with these exact sections:",
+    "1. ���",
+    "2. �ٰ�",
+    "3. ���� �ȳ�",
+    "Rules:",
+    "- Base the answer only on planner, tool_results, validation_label, memory_record, and llmContext fields.",
+    "- Mention current market regime, recommended strategy, validation label, core risk, memory usage, and next review action.",
+    "- If validation is REVIEW or REJECT, or if memory indicates caution, use conservative wording.",
+    "- Keep the answer short and readable.",
+    "- Do not present the output as investment instruction; present it as review support only.",
+    "- If the context is insufficient, say that additional confirmation is needed."
   ].join("\n");
 
   const userPayload = JSON.stringify(context, null, 2);
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
+  const response = await fetch(baseUrl + "/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

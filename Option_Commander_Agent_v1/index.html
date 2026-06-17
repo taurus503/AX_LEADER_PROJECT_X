@@ -6,22 +6,23 @@
   <title>Option Commander Agent v1</title>
   <style>
     :root {
-      --bg: #09111f;
-      --panel: rgba(15, 24, 44, 0.82);
-      --panel-strong: rgba(10, 17, 33, 0.95);
-      --line: rgba(170, 190, 255, 0.18);
-      --line-strong: rgba(170, 190, 255, 0.3);
-      --ink: #eef3ff;
-      --muted: #9aabc9;
+      --bg: #08101d;
+      --bg-2: #0d1730;
+      --panel: rgba(14, 22, 42, 0.94);
+      --panel-soft: rgba(18, 28, 52, 0.92);
+      --line: rgba(159, 185, 255, 0.16);
+      --line-strong: rgba(103, 144, 255, 0.34);
+      --ink: #edf4ff;
+      --muted: #95a7ca;
       --blue: #4f7cff;
       --blue-deep: #214dc8;
-      --teal: #31c9b2;
+      --teal: #30c4b0;
       --amber: #f0b84d;
-      --green: #49d29d;
+      --green: #3dcb93;
       --red: #e55a73;
-      --shadow: 0 24px 60px rgba(1, 6, 22, 0.42);
       --radius: 22px;
       --radius-sm: 16px;
+      --shadow: 0 24px 60px rgba(3, 8, 25, 0.42);
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -31,13 +32,13 @@
       font-family: "Segoe UI", "Malgun Gothic", Arial, sans-serif;
       background:
         radial-gradient(circle at top left, rgba(79, 124, 255, 0.22), transparent 32%),
-        radial-gradient(circle at top right, rgba(49, 201, 178, 0.12), transparent 28%),
-        linear-gradient(180deg, #09111f 0%, #0b1426 40%, #09111b 100%);
+        radial-gradient(circle at top right, rgba(48, 196, 176, 0.12), transparent 28%),
+        linear-gradient(180deg, var(--bg) 0%, #0b1325 42%, #08101b 100%);
     }
     a { color: inherit; text-decoration: none; }
-    button, input, textarea { font: inherit; }
+    button, input, textarea, select { font: inherit; }
     .shell {
-      width: min(1500px, calc(100% - 28px));
+      width: min(1540px, calc(100% - 24px));
       margin: 0 auto;
       padding: 16px 0 36px;
       display: grid;
@@ -47,20 +48,20 @@
     .panel {
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(18, 28, 52, 0.92), rgba(11, 18, 34, 0.92));
+      background: linear-gradient(180deg, rgba(18, 28, 52, 0.95), rgba(10, 17, 33, 0.95));
       box-shadow: var(--shadow);
       backdrop-filter: blur(18px);
     }
     .hero {
       display: grid;
-      grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
       gap: 16px;
       padding: 18px;
     }
     .brand {
       display: flex;
-      align-items: flex-start;
       gap: 16px;
+      align-items: flex-start;
       min-width: 0;
     }
     .mark {
@@ -69,9 +70,9 @@
       border-radius: 16px;
       display: grid;
       place-items: center;
-      background: linear-gradient(135deg, var(--blue-deep), #69a0ff);
+      background: linear-gradient(135deg, var(--blue-deep), #6da1ff);
       border: 1px solid rgba(255, 255, 255, 0.18);
-      box-shadow: 0 18px 30px rgba(33, 77, 200, 0.35);
+      box-shadow: 0 18px 30px rgba(33, 77, 200, 0.38);
       font-weight: 1000;
       letter-spacing: 0.08em;
     }
@@ -86,15 +87,15 @@
     .hero h1 {
       margin: 0;
       font-size: clamp(28px, 3vw, 44px);
-      line-height: 1.06;
+      line-height: 1.08;
       letter-spacing: -0.04em;
     }
     .hero p {
       margin: 10px 0 0;
       color: var(--muted);
-      line-height: 1.7;
+      line-height: 1.75;
       font-size: 14px;
-      max-width: 72ch;
+      max-width: 74ch;
     }
     .hero-side {
       display: grid;
@@ -102,29 +103,30 @@
       align-content: start;
     }
     .summary-ring {
-      width: 132px;
+      width: 140px;
       aspect-ratio: 1;
+      margin-left: auto;
       border-radius: 999px;
       display: grid;
       place-items: center;
       background:
-        radial-gradient(circle at center, rgba(11, 18, 34, 0.95) 56%, transparent 56.2%),
+        radial-gradient(circle at center, rgba(10, 17, 33, 0.95) 57%, transparent 57.2%),
         conic-gradient(var(--blue) calc(var(--score, 72) * 1%), rgba(255, 255, 255, 0.08) 0);
       border: 1px solid var(--line);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-      margin-left: auto;
     }
     .summary-ring strong {
+      display: block;
       font-size: 32px;
-      font-weight: 1000;
       line-height: 1;
+      font-weight: 1000;
+      text-align: center;
     }
     .summary-ring span {
       display: block;
+      margin-top: 4px;
       color: var(--muted);
       font-size: 11px;
       text-align: center;
-      margin-top: 4px;
     }
     .status-grid {
       display: grid;
@@ -144,7 +146,7 @@
     .status-pill strong { color: var(--ink); }
     .workflow {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 10px;
     }
     .workflow-card {
@@ -170,7 +172,7 @@
     }
     .workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr);
+      grid-template-columns: minmax(0, 1.02fr) minmax(380px, 0.98fr);
       gap: 16px;
       align-items: start;
     }
@@ -199,7 +201,7 @@
       display: grid;
       gap: 12px;
       min-height: 380px;
-      max-height: 530px;
+      max-height: 560px;
       overflow: auto;
       padding-right: 4px;
     }
@@ -232,11 +234,35 @@
       font-size: 14px;
       white-space: pre-wrap;
     }
-    .quick-prompts {
+    .composer,
+    .memory-form {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .composer textarea {
+      width: 100%;
+      min-height: 104px;
+      resize: vertical;
+      border-radius: 18px;
+      border: 1px solid rgba(120, 152, 224, 0.45);
+      background: #13213d;
+      color: #f6f9ff;
+      padding: 14px;
+      outline: none;
+    }
+    .composer textarea:focus,
+    .memory-grid input:focus,
+    .memory-grid select:focus {
+      border-color: rgba(79, 124, 255, 0.95);
+      box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.22);
+      background: #172745;
+    }
+    .composer-actions {
       display: flex;
+      gap: 10px;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
+      align-items: center;
     }
     .prompt-btn,
     .primary-btn,
@@ -257,33 +283,11 @@
       background: linear-gradient(135deg, var(--blue), #1849ab);
       border-color: transparent;
     }
-    .composer {
-      display: grid;
-      gap: 10px;
-      margin-top: 14px;
-    }
-    .composer textarea {
-      width: 100%;
-      min-height: 108px;
-      resize: vertical;
-      border-radius: 18px;
-      border: 1px solid rgba(120, 152, 224, 0.45);
-      background: #13213d;
-      color: #f6f9ff;
-      padding: 14px 14px;
-      outline: none;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-    }
-    .composer textarea:focus {
-      border-color: rgba(79, 124, 255, 0.95);
-      box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.22);
-      background: #172745;
-    }
-    .composer-actions {
+    .quick-prompts {
       display: flex;
-      gap: 10px;
       flex-wrap: wrap;
-      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
     }
     .memory-grid {
       display: grid;
@@ -300,12 +304,6 @@
       border: 1px solid rgba(120, 152, 224, 0.45);
       border-radius: 12px;
       outline: none;
-    }
-    .memory-grid input:focus,
-    .memory-grid select:focus {
-      border-color: rgba(79, 124, 255, 0.95);
-      box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.22);
-      background: #172745;
     }
     .memory-preview {
       white-space: pre-wrap;
@@ -445,9 +443,7 @@
       display: grid;
       gap: 8px;
     }
-    .trail-card strong {
-      font-size: 14px;
-    }
+    .trail-card strong { font-size: 14px; }
     .footer-note {
       color: var(--muted);
       font-size: 12px;
@@ -456,18 +452,15 @@
     }
     @media (max-width: 1200px) {
       .hero,
-      .workspace {
-        grid-template-columns: 1fr;
-      }
-      .workflow {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+      .workspace { grid-template-columns: 1fr; }
+      .workflow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 760px) {
-      .shell { width: min(100% - 16px, 1500px); padding-top: 12px; }
+      .shell { width: min(100% - 16px, 1540px); padding-top: 12px; }
       .workflow,
       .metric-grid,
-      .status-grid { grid-template-columns: 1fr; }
+      .status-grid,
+      .memory-grid { grid-template-columns: 1fr; }
       .hero { padding: 16px; }
       .panel { padding: 16px; }
       .brand { flex-direction: column; }
@@ -482,8 +475,8 @@
         <div class="mark">OC</div>
         <div>
           <p class="eyebrow">Option Commander Agent</p>
-          <h1>Planner가 질문을 해석하고, 필요한 Agent만 호출해 Battle Plan으로 묶습니다.</h1>
-          <p>사용자의 질문을 받아 시장 국면, 옵션 전략, 검증, 성과분해 중 필요한 조합만 골라 연결하는 Commander 레이어입니다. Chat과 Dashboard가 동시에 움직이며, 실전에서는 검토 흐름을 빠르게 정리하는 오케스트레이터 역할을 합니다.</p>
+          <h1>질문 하나로 필요한 Agent를 호출하고, 최종 답변까지 한 화면에서 연결합니다.</h1>
+          <p>이번 버전은 Chat UI를 중심으로 구성했습니다. 사용자의 질문을 받은 뒤 Commander가 Regime, Playbook, Validation 순으로 호출하고, 결과를 검토 가능한 형태로 정리해 보여줍니다.</p>
         </div>
       </div>
       <div class="hero-side">
@@ -502,22 +495,23 @@
     </section>
 
     <section class="workflow" aria-label="Commander flow">
-      <div class="workflow-card"><span>1. User Question</span><strong>질문을 받으면 intent를 해석합니다.</strong></div>
-      <div class="workflow-card"><span>2. Planner</span><strong>필요한 Agent와 순서를 선택합니다.</strong></div>
-      <div class="workflow-card"><span>3. Agent Call</span><strong>선택된 Agent 결과를 하나씩 수집합니다.</strong></div>
-      <div class="workflow-card"><span>4. Battle Plan</span><strong>최종 행동계획과 검토 포인트로 정리합니다.</strong></div>
+      <div class="workflow-card"><span>1. User Question</span><strong>이번 월물 추천 같은 질문을 받습니다.</strong></div>
+      <div class="workflow-card"><span>2. Commander</span><strong>Planner가 필요한 Agent를 고릅니다.</strong></div>
+      <div class="workflow-card"><span>3. Regime</span><strong>현재 시장 국면을 먼저 해석합니다.</strong></div>
+      <div class="workflow-card"><span>4. Playbook / Validation</span><strong>전략과 검증을 연달아 실행합니다.</strong></div>
+      <div class="workflow-card"><span>5. Answer</span><strong>대화형으로 최종 답변을 돌려줍니다.</strong></div>
     </section>
 
     <section class="workspace">
       <section class="panel">
         <div class="section-head">
-          <h2>Chat Console</h2>
-          <span id="turnHint">질문을 입력하면 Planner가 라우팅합니다.</span>
+          <h2>Chat UI</h2>
+          <span id="turnHint">질문을 입력하면 Commander가 실행됩니다.</span>
         </div>
         <div id="transcript" class="transcript" aria-live="polite"></div>
         <div class="quick-prompts" id="quickPrompts" aria-label="quick prompts"></div>
         <form id="composer" class="composer">
-          <textarea id="questionInput" placeholder="예: 지금 추천 전략은? / 이 전략을 검증까지 해줘 / 성과가 왜 이렇게 나왔지?"></textarea>
+          <textarea id="questionInput" placeholder="예: 이번 월물 추천"></textarea>
           <div class="composer-actions">
             <button class="primary-btn" type="submit">Commander 실행</button>
             <button class="ghost-btn" id="resetBtn" type="button">초기화</button>
@@ -528,19 +522,19 @@
       <aside class="dashboard-grid">
         <section class="panel">
           <div class="section-head">
-            <h2>Commander Dashboard</h2>
+          <h2>Battle Plan Dashboard</h2>
             <span id="updatedAt">Ready</span>
           </div>
           <div class="metric-grid">
             <div class="metric-card">
               <span>Planner Confidence</span>
               <strong id="metricConfidence">72%</strong>
-              <em id="metricConfidenceNote">질문의 명확도와 rule match를 기준으로 계산합니다.</em>
+              <em id="metricConfidenceNote">질문 명확도와 rule match를 기준으로 계산합니다.</em>
             </div>
             <div class="metric-card">
               <span>Agent Depth</span>
               <strong id="metricDepth">3</strong>
-              <em id="metricDepthNote">선택된 Agent 수에 따라 호출 깊이를 보여줍니다.</em>
+              <em id="metricDepthNote">선택된 Agent 수에 따라 호출 깊이가 달라집니다.</em>
             </div>
             <div class="metric-card">
               <span>Battle Readiness</span>
@@ -550,14 +544,14 @@
             <div class="metric-card">
               <span>Last Intent</span>
               <strong id="metricIntent">Strategy</strong>
-              <em id="metricIntentNote">마지막 질문의 핵심 의도를 요약합니다.</em>
+              <em id="metricIntentNote">마지막 질문의 의도를 요약합니다.</em>
             </div>
           </div>
         </section>
 
         <section class="panel subpanel">
           <div class="section-head">
-            <h3>Tool Registry</h3>
+            <h3>Planner / Tool Registry</h3>
             <span id="registryMeta">Registry-driven</span>
           </div>
           <div id="agentList" class="agent-list"></div>
@@ -565,7 +559,7 @@
 
         <section class="panel subpanel">
           <div class="section-head">
-            <h3>Tool Calls</h3>
+            <h3>Reflection Agent / Memory Agent</h3>
             <span>Selected path</span>
           </div>
           <div id="toolCallList" class="agent-list"></div>
@@ -584,7 +578,7 @@
             <h3>Memory Agent</h3>
             <span id="memoryCount">0 saved</span>
           </div>
-          <form id="memoryForm" class="composer">
+          <form id="memoryForm" class="memory-form">
             <div class="memory-grid">
               <input id="memoryRegime" type="text" placeholder="regime" value="Momentum" />
               <input id="memoryStrategy" type="text" placeholder="strategy" value="Iron Condor" />
@@ -605,7 +599,7 @@
 
         <section class="panel subpanel">
           <div class="section-head">
-            <h3>Battle Plan</h3>
+            <h3>Regime / Playbook / Validation / Attribution</h3>
             <span>Synced Output</span>
           </div>
           <ol id="battlePlan" class="battle-list"></ol>
@@ -613,13 +607,13 @@
 
         <section class="panel subpanel">
           <div class="section-head">
-            <h3>Decision Trail</h3>
+            <h3>Battle Plan</h3>
             <span>Planner reasoning</span>
           </div>
           <div id="decisionTrail" class="trail-card"></div>
         </section>
 
-        <p class="footer-note">Option Commander Agent는 직접 매수·매도 결정을 내리지 않고, 어떤 Agent를 어떤 순서로 호출할지 조정하는 오케스트레이션 레이어입니다.</p>
+        <p class="footer-note">Option Commander Agent는 질문을 받아 필요한 Agent를 선택하고, 선택 이유와 검증 결과까지 함께 보여주는 대화형 오케스트레이션 패널입니다.</p>
       </aside>
     </section>
   </main>

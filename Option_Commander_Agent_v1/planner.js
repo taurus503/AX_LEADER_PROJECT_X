@@ -58,6 +58,7 @@ export const DEFAULT_TOOL_REGISTRY = {
     }
   ],
   prompts: [
+    "이번 월물 추천",
     "지금 추천 전략은?",
     "추천 결과를 다시 검토해줘",
     "이 전략을 검증까지 해줘",
@@ -68,9 +69,9 @@ export const DEFAULT_TOOL_REGISTRY = {
 const ROUTE_RULES = [
   {
     intent: "Strategy",
-    keywords: ["추천 전략", "추천전략", "전략", "playbook", "옵션", "포지션", "trade"],
-    sequence: ["regime-agent", "playbook-agent", "reflection-agent"],
-    summary: "This is a strategy request. Route through regime, playbook, reflection, and validation."
+    keywords: ["추천 전략", "추천전략", "전략", "추천", "월물", "playbook", "옵션", "포지션", "trade"],
+    sequence: ["regime-agent", "playbook-agent", "validation-agent"],
+    summary: "This is a strategy request. Route through regime, playbook, and validation."
   },
   {
     intent: "Market Regime",
@@ -300,6 +301,19 @@ function buildValidationCall(stage, reflectionOutput, memoryCue) {
   };
 }
 
+function buildFinalAnswer(validationCall, needsValidationRecheck) {
+  const label = validationCall?.label || "PASS";
+  if (label === "REJECT") {
+    return "Revised answer: the strategy should be avoided until the risk case is fixed.";
+  }
+  if (label === "REVIEW") {
+    return needsValidationRecheck
+      ? "Revised answer: the strategy should be treated as REVIEW until the rechecked validation clears the risk."
+      : "Revised answer: the strategy is usable, but keep it in REVIEW until the risk points are cleared.";
+  }
+  return "Revised answer: the strategy can move forward with current risk controls.";
+}
+
 function buildAttributionCall() {
   return {
     allocationEffect: 2.4,
@@ -406,7 +420,9 @@ export function planQuestion(question, registry = DEFAULT_TOOL_REGISTRY, memoryR
   const validationCall = [...calls].reverse().find((call) => String(call.id).includes("validation-agent"));
   const revisionNote = needsValidationRecheck
     ? "Reflection Agent flagged risk and triggered a second validation pass."
-    : "Reflection Agent accepted the strategy with no extra validation pass.";
+    : validationCall?.label === "REVIEW"
+      ? "Validation Agent kept the plan in REVIEW."
+      : "Validation Agent accepted the plan with no extra validation pass.";
 
   return {
     question: input,
@@ -421,9 +437,7 @@ export function planQuestion(question, registry = DEFAULT_TOOL_REGISTRY, memoryR
     memoryCue,
     battlePlan: buildBattlePlan(sequence, intent),
     summary: buildSummary(intent, sequence, confidence, registry, revisionNote, memoryCue),
-    finalAnswer: needsValidationRecheck
-      ? "Revised answer: the strategy should be treated as REVIEW until the rechecked validation clears the risk."
-      : "Revised answer: the strategy can move forward with current risk controls.",
+    finalAnswer: buildFinalAnswer(validationCall?.output, needsValidationRecheck),
     updatedAt: new Date().toISOString()
   };
 }

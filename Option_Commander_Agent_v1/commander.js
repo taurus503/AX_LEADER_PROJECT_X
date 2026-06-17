@@ -5,7 +5,6 @@ const els = {
   agentList: document.getElementById("agentList"),
   toolCallList: document.getElementById("toolCallList"),
   reflectionLoop: document.getElementById("reflectionLoop"),
-  memoryPanel: document.getElementById("memoryPanel"),
   memoryForm: document.getElementById("memoryForm"),
   memoryRegime: document.getElementById("memoryRegime"),
   memoryStrategy: document.getElementById("memoryStrategy"),
@@ -60,6 +59,10 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+function formatToolName(id) {
+  return id.replace(/-agent$/, "").replace(/-/g, " ");
+}
+
 function renderQuickPrompts(prompts) {
   els.quickPrompts.innerHTML = prompts
     .map((prompt) => `<button type="button" class="prompt-btn" data-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`)
@@ -78,85 +81,107 @@ function renderTranscript() {
     els.transcript.innerHTML = `
       <div class="message">
         <div class="label">Commander</div>
-        <p>질문을 넣으면 Planner가 Tool Registry와 Memory Agent를 읽고 필요한 Agent만 호출합니다.</p>
+        <p>질문을 입력하면 Commander가 Planner를 통해 Regime, Playbook, Validation 순서로 호출합니다.</p>
       </div>
     `;
     return;
   }
 
-  els.transcript.innerHTML = state.history.map((item) => {
-    const label = item.role === "user" ? "User" : "Commander";
-    const className = item.role === "user" ? "message user" : "message";
-    return `
-      <div class="${className}">
-        <div class="label">${label}</div>
-        <p>${escapeHtml(item.text)}</p>
-      </div>
-    `;
-  }).join("");
+  els.transcript.innerHTML = state.history
+    .map((item) => {
+      if (item.role === "user") {
+        return `
+          <div class="message user">
+            <div class="label">User</div>
+            <p>${escapeHtml(item.text)}</p>
+          </div>
+        `;
+      }
+
+      const chips = [
+        item.meta?.intent,
+        item.meta?.path,
+        item.meta?.validation,
+        item.meta?.memory
+      ].filter(Boolean);
+
+      return `
+        <div class="message">
+          <div class="label">Commander</div>
+          <p>${escapeHtml(item.text)}</p>
+          ${item.meta?.summary ? `<p style="margin-top:10px;color:var(--muted)">${escapeHtml(item.meta.summary)}</p>` : ""}
+          ${chips.length ? `<div class="tag-row" style="margin-top:10px;">${chips.map((chip) => `<span class="tag">${escapeHtml(chip)}</span>`).join("")}</div>` : ""}
+        </div>
+      `;
+    })
+    .join("");
 
   els.transcript.scrollTop = els.transcript.scrollHeight;
 }
 
 function renderRegistry(plan) {
   els.registryMeta.textContent = `${state.registry.tools.length} tools`;
-  els.agentList.innerHTML = state.registry.tools.map((tool) => {
-    const isActive = plan.selectedToolIds.includes(tool.id);
-    const sampleText =
-      tool.id === "regime-agent"
-        ? "Transition / confidence 74%"
-        : tool.id === "playbook-agent"
-          ? "Bull Call Spread → Short Straddle"
-          : tool.id === "reflection-agent"
-            ? "Risk review → validation recheck"
-            : tool.id === "memory-agent"
-              ? "Memory JSON store / recall"
-              : tool.id === "validation-agent"
-                ? "REVIEW / 69"
-                : "allocation 2.4 / selection 3.1";
+  els.agentList.innerHTML = state.registry.tools
+    .map((tool) => {
+      const isActive = plan.selectedToolIds.includes(tool.id);
+      const sampleText =
+        tool.id === "regime-agent"
+          ? "Transition / confidence 74%"
+          : tool.id === "playbook-agent"
+            ? "Bull Call Spread / Iron Condor"
+            : tool.id === "validation-agent"
+              ? "PASS / REVIEW / REJECT"
+              : tool.id === "reflection-agent"
+                ? "Risk review / recheck"
+                : tool.id === "memory-agent"
+                  ? "Memory JSON store / recall"
+                  : "allocation / selection / interaction";
 
-    return `
-      <article class="agent-card ${isActive ? "active" : ""}">
-        <div class="agent-card__head">
-          <strong>${escapeHtml(tool.name)}</strong>
-          <span class="tag ${isActive ? "good" : "warn"}">${isActive ? "selected" : "standby"}</span>
-        </div>
-        <div class="tag-row">
-          <span class="tag">${escapeHtml(tool.label)}</span>
-          <span class="tag">${escapeHtml(tool.purpose)}</span>
-        </div>
-        <div class="tag-row">
-          ${tool.outputs.slice(0, 3).map((output) => `<span class="tag">${escapeHtml(output)}</span>`).join("")}
-        </div>
-        <div class="tag-row">
-          <span class="tag ${isActive ? "good" : ""}">${escapeHtml(sampleText)}</span>
-        </div>
-      </article>
-    `;
-  }).join("");
+      return `
+        <article class="agent-card ${isActive ? "active" : ""}">
+          <div class="agent-card__head">
+            <strong>${escapeHtml(tool.name)}</strong>
+            <span class="tag ${isActive ? "good" : "warn"}">${isActive ? "selected" : "standby"}</span>
+          </div>
+          <div class="tag-row">
+            <span class="tag">${escapeHtml(tool.label)}</span>
+            <span class="tag">${escapeHtml(tool.purpose)}</span>
+          </div>
+          <div class="tag-row">
+            ${tool.outputs.slice(0, 3).map((output) => `<span class="tag">${escapeHtml(output)}</span>`).join("")}
+          </div>
+          <div class="tag-row">
+            <span class="tag ${isActive ? "good" : ""}">${escapeHtml(sampleText)}</span>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderToolCalls(plan) {
-  els.toolCallList.innerHTML = plan.toolCalls.map((call) => {
-    const outputLine = call.id === "regime-agent"
-      ? `Regime: ${call.output.currentRegime}, Event Risk: ${call.output.eventRisk}, Confidence: ${Math.round(call.output.confidenceScore * 100)}%`
-      : call.id === "playbook-agent"
-        ? `Top: ${call.output.topRecommended[0]}, Avoid: ${call.output.avoidNow[0]}, Score: ${call.output.strategyScore}`
-        : call.id === "memory-agent"
-          ? `Stored: ${call.output.storedCount}, Recent: ${call.output.recent.length}`
-          : String(call.id).startsWith("validation-agent")
-            ? `Label: ${call.output.label}, Score: ${call.output.validationScore}`
-            : call.id === "reflection-agent"
-              ? `Self-review: ${call.output.selfReview}`
-              : `Alpha: ${call.output.alphaSource}, Update: ${call.output.updateSignal}`;
+  els.toolCallList.innerHTML = plan.toolCalls
+    .map((call) => {
+      const outputLine = call.id === "regime-agent"
+        ? `Regime: ${call.output.currentRegime}, Event Risk: ${call.output.eventRisk}, Confidence: ${Math.round(call.output.confidenceScore * 100)}%`
+        : call.id === "playbook-agent"
+          ? `Top: ${call.output.topRecommended[0]}, Avoid: ${call.output.avoidNow[0]}, Score: ${call.output.strategyScore}`
+          : call.id === "memory-agent"
+            ? `Stored: ${call.output.storedCount}, Recent: ${call.output.recent.length}`
+            : String(call.id).includes("validation-agent")
+              ? `Label: ${call.output.label}, Score: ${call.output.validationScore}`
+              : call.id === "reflection-agent"
+                ? `Self-review: ${call.output.selfReview}`
+                : `Alpha: ${call.output.alphaSource}, Update: ${call.output.updateSignal}`;
 
-    return `
-      <article class="trail-card">
-        <strong>${escapeHtml(call.name)}</strong>
-        <p>${escapeHtml(outputLine)}</p>
-      </article>
-    `;
-  }).join("");
+      return `
+        <article class="trail-card">
+          <strong>${escapeHtml(call.name)}</strong>
+          <p>${escapeHtml(outputLine)}</p>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderReflection(plan) {
@@ -206,12 +231,14 @@ function renderMemory() {
 }
 
 function renderBattlePlan(plan) {
-  els.battlePlan.innerHTML = plan.battlePlan.map((step) => `
-    <li>
-      <strong>${escapeHtml(step.title)}</strong>
-      <p>${escapeHtml(step.text)}</p>
-    </li>
-  `).join("");
+  els.battlePlan.innerHTML = plan.battlePlan
+    .map((step) => `
+      <li>
+        <strong>${escapeHtml(step.title)}</strong>
+        <p>${escapeHtml(step.text)}</p>
+      </li>
+    `)
+    .join("");
 }
 
 function renderTrail(plan) {
@@ -225,11 +252,24 @@ function renderTrail(plan) {
 }
 
 function pushConversation(userText, plan) {
-  state.history.unshift({
-    role: "assistant",
-    text: `${plan.summary}\n\n- Selected: ${plan.selectedTools.map((tool) => tool.name).join(" → ")}\n- Reflection: ${plan.reflection?.selfReview || "none"}\n- Memory: ${plan.memoryCue?.note || "none"}\n- Result: ${plan.finalAnswer}`
-  });
-  state.history.unshift({ role: "user", text: userText });
+  const path = plan.selectedTools.map((tool) => tool.name).join(" → ");
+  const validationLabel = plan.validation?.label || "PASS";
+  const memoryNote = plan.memoryCue?.note || "No memory cue";
+
+  state.history.push(
+    { role: "user", text: userText },
+    {
+      role: "assistant",
+      text: plan.finalAnswer,
+      meta: {
+        summary: plan.summary,
+        intent: plan.intent,
+        path,
+        validation: `${validationLabel} / ${plan.validation?.validationScore ?? "-"}`,
+        memory: memoryNote
+      }
+    }
+  );
 }
 
 function renderMetrics(plan) {
@@ -254,6 +294,7 @@ function renderMetrics(plan) {
 function runPlan() {
   const question = els.questionInput.value.trim();
   if (!question) return;
+
   const plan = planQuestion(question, state.registry, state.memory);
   pushConversation(question, plan);
   renderTranscript();
@@ -269,8 +310,7 @@ async function bootstrap() {
   state.registry = await loadToolRegistry();
   state.memory = loadMemoryRecords();
   renderQuickPrompts(state.registry.prompts || DEFAULT_TOOL_REGISTRY.prompts);
-  const initialQuestion = state.registry.prompts?.[0] || "지금 추천 전략은?";
-  els.questionInput.value = initialQuestion;
+  els.questionInput.value = state.registry.prompts?.[0] || "이번 월물 추천";
   runPlan();
   renderMemory();
 }

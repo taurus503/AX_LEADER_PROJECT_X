@@ -1,10 +1,19 @@
-import { DEFAULT_TOOL_REGISTRY, loadToolRegistry, planQuestion } from "./planner.js";
+import { DEFAULT_TOOL_REGISTRY, loadMemoryRecords, loadToolRegistry, planQuestion, saveMemoryRecord } from "./planner.js";
 
 const els = {
   transcript: document.getElementById("transcript"),
   agentList: document.getElementById("agentList"),
   toolCallList: document.getElementById("toolCallList"),
   reflectionLoop: document.getElementById("reflectionLoop"),
+  memoryPanel: document.getElementById("memoryPanel"),
+  memoryForm: document.getElementById("memoryForm"),
+  memoryRegime: document.getElementById("memoryRegime"),
+  memoryStrategy: document.getElementById("memoryStrategy"),
+  memoryResult: document.getElementById("memoryResult"),
+  memoryList: document.getElementById("memoryList"),
+  memoryPreview: document.getElementById("memoryPreview"),
+  memoryCount: document.getElementById("memoryCount"),
+  memoryRefreshBtn: document.getElementById("memoryRefreshBtn"),
   battlePlan: document.getElementById("battlePlan"),
   decisionTrail: document.getElementById("decisionTrail"),
   questionInput: document.getElementById("questionInput"),
@@ -31,6 +40,7 @@ const els = {
 
 const state = {
   registry: DEFAULT_TOOL_REGISTRY,
+  memory: loadMemoryRecords(),
   history: []
 };
 
@@ -68,7 +78,7 @@ function renderTranscript() {
     els.transcript.innerHTML = `
       <div class="message">
         <div class="label">Commander</div>
-        <p>질문을 넣으면 Planner가 Tool Registry를 읽고 필요한 Agent만 호출합니다.</p>
+        <p>질문을 넣으면 Planner가 Tool Registry와 Memory Agent를 읽고 필요한 Agent만 호출합니다.</p>
       </div>
     `;
     return;
@@ -99,9 +109,11 @@ function renderRegistry(plan) {
           ? "Bull Call Spread → Short Straddle"
           : tool.id === "reflection-agent"
             ? "Risk review → validation recheck"
-            : tool.id === "validation-agent"
-              ? "REVIEW / 69"
-              : "allocation 2.4 / selection 3.1";
+            : tool.id === "memory-agent"
+              ? "Memory JSON store / recall"
+              : tool.id === "validation-agent"
+                ? "REVIEW / 69"
+                : "allocation 2.4 / selection 3.1";
 
     return `
       <article class="agent-card ${isActive ? "active" : ""}">
@@ -130,11 +142,13 @@ function renderToolCalls(plan) {
       ? `Regime: ${call.output.currentRegime}, Event Risk: ${call.output.eventRisk}, Confidence: ${Math.round(call.output.confidenceScore * 100)}%`
       : call.id === "playbook-agent"
         ? `Top: ${call.output.topRecommended[0]}, Avoid: ${call.output.avoidNow[0]}, Score: ${call.output.strategyScore}`
-        : String(call.id).startsWith("validation-agent")
-          ? `Label: ${call.output.label}, Score: ${call.output.validationScore}`
-          : call.id === "reflection-agent"
-            ? `Self-review: ${call.output.selfReview}`
-            : `Alpha: ${call.output.alphaSource}, Update: ${call.output.updateSignal}`;
+        : call.id === "memory-agent"
+          ? `Stored: ${call.output.storedCount}, Recent: ${call.output.recent.length}`
+          : String(call.id).startsWith("validation-agent")
+            ? `Label: ${call.output.label}, Score: ${call.output.validationScore}`
+            : call.id === "reflection-agent"
+              ? `Self-review: ${call.output.selfReview}`
+              : `Alpha: ${call.output.alphaSource}, Update: ${call.output.updateSignal}`;
 
     return `
       <article class="trail-card">
@@ -148,6 +162,7 @@ function renderToolCalls(plan) {
 function renderReflection(plan) {
   const reflection = plan.reflection;
   const validation = plan.validation;
+  const memoryCue = plan.memoryCue;
 
   els.reflectionLoop.innerHTML = `
     <div class="trail-card">
@@ -159,10 +174,35 @@ function renderReflection(plan) {
       <p>${escapeHtml(validation ? `${validation.label} / ${validation.validationScore} / ${validation.riskWarning}` : "No recheck needed.")}</p>
     </div>
     <div class="trail-card">
+      <strong>Memory Cue</strong>
+      <p>${escapeHtml(memoryCue?.note || "No matching memory found.")}</p>
+    </div>
+    <div class="trail-card">
       <strong>Revised Answer</strong>
       <p>${escapeHtml(plan.finalAnswer)}</p>
     </div>
   `;
+}
+
+function renderMemory() {
+  els.memoryCount.textContent = `${state.memory.length} saved`;
+  els.memoryPreview.textContent = state.memory.length
+    ? JSON.stringify(state.memory[0], null, 2)
+    : JSON.stringify({ regime: "Momentum", strategy: "Iron Condor", result: "loss" }, null, 2);
+
+  els.memoryList.innerHTML = state.memory.length
+    ? state.memory.slice(0, 6).map((entry) => `
+        <article class="trail-card">
+          <strong>${escapeHtml(entry.regime || "-")} / ${escapeHtml(entry.strategy || "-")}</strong>
+          <p>${escapeHtml(`${entry.result || "-"} · ${entry.timestamp ? fmtTime(entry.timestamp) : ""}`)}</p>
+        </article>
+      `).join("")
+    : `
+        <article class="trail-card">
+          <strong>No memory saved yet</strong>
+          <p>Store regime, strategy, and result as JSON so the next recommendation can reuse it.</p>
+        </article>
+      `;
 }
 
 function renderBattlePlan(plan) {
@@ -187,7 +227,7 @@ function renderTrail(plan) {
 function pushConversation(userText, plan) {
   state.history.unshift({
     role: "assistant",
-    text: `${plan.summary}\n\n- Selected: ${plan.selectedTools.map((tool) => tool.name).join(" → ")}\n- Reflection: ${plan.reflection?.selfReview || "none"}\n- Result: ${plan.finalAnswer}`
+    text: `${plan.summary}\n\n- Selected: ${plan.selectedTools.map((tool) => tool.name).join(" → ")}\n- Reflection: ${plan.reflection?.selfReview || "none"}\n- Memory: ${plan.memoryCue?.note || "none"}\n- Result: ${plan.finalAnswer}`
   });
   state.history.unshift({ role: "user", text: userText });
 }
@@ -214,7 +254,7 @@ function renderMetrics(plan) {
 function runPlan() {
   const question = els.questionInput.value.trim();
   if (!question) return;
-  const plan = planQuestion(question, state.registry);
+  const plan = planQuestion(question, state.registry, state.memory);
   pushConversation(question, plan);
   renderTranscript();
   renderMetrics(plan);
@@ -227,10 +267,12 @@ function runPlan() {
 
 async function bootstrap() {
   state.registry = await loadToolRegistry();
+  state.memory = loadMemoryRecords();
   renderQuickPrompts(state.registry.prompts || DEFAULT_TOOL_REGISTRY.prompts);
   const initialQuestion = state.registry.prompts?.[0] || "지금 추천 전략은?";
   els.questionInput.value = initialQuestion;
   runPlan();
+  renderMemory();
 }
 
 els.composer.addEventListener("submit", (event) => {
@@ -250,6 +292,28 @@ els.resetBtn.addEventListener("click", () => {
     <strong>Planner standby</strong>
     <p>Type a question and the Planner will choose the next tool call.</p>
   `;
+});
+
+els.memoryForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const nextMemory = saveMemoryRecord({
+    regime: els.memoryRegime.value,
+    strategy: els.memoryStrategy.value,
+    result: els.memoryResult.value
+  });
+  state.memory = nextMemory;
+  renderMemory();
+  if (els.questionInput.value.trim()) {
+    runPlan();
+  }
+});
+
+els.memoryRefreshBtn.addEventListener("click", () => {
+  state.memory = loadMemoryRecords();
+  renderMemory();
+  if (els.questionInput.value.trim()) {
+    runPlan();
+  }
 });
 
 bootstrap();

@@ -30,6 +30,15 @@
       "outputs": ["Risk Review", "Validation Trigger", "Revised Answer", "Residual Risk"]
     },
     {
+      "id": "memory-agent",
+      "name": "Memory Agent",
+      "agentId": "memory",
+      "label": "Memory",
+      "purpose": "Persist regime / strategy / result JSON",
+      "triggers": ["memory", "remember", "save", "history", "store", "저장", "기억"],
+      "outputs": ["regime", "strategy", "result", "timestamp"]
+    },
+    {
       "id": "validation-agent",
       "name": "Validation Agent",
       "agentId": "validation",

@@ -285,6 +285,39 @@
       flex-wrap: wrap;
       align-items: center;
     }
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .memory-grid input,
+    .memory-grid select {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px;
+      color: #f6f9ff;
+      background: #13213d;
+      border: 1px solid rgba(120, 152, 224, 0.45);
+      border-radius: 12px;
+      outline: none;
+    }
+    .memory-grid input:focus,
+    .memory-grid select:focus {
+      border-color: rgba(79, 124, 255, 0.95);
+      box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.22);
+      background: #172745;
+    }
+    .memory-preview {
+      white-space: pre-wrap;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 14px;
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.6;
+      margin: 0;
+    }
     .dashboard-grid {
       display: grid;
       gap: 12px;
@@ -544,6 +577,30 @@
             <span>Self-review + recheck</span>
           </div>
           <div id="reflectionLoop" class="agent-list"></div>
+        </section>
+
+        <section class="panel subpanel">
+          <div class="section-head">
+            <h3>Memory Agent</h3>
+            <span id="memoryCount">0 saved</span>
+          </div>
+          <form id="memoryForm" class="composer">
+            <div class="memory-grid">
+              <input id="memoryRegime" type="text" placeholder="regime" value="Momentum" />
+              <input id="memoryStrategy" type="text" placeholder="strategy" value="Iron Condor" />
+              <select id="memoryResult">
+                <option value="win">win</option>
+                <option value="loss" selected>loss</option>
+                <option value="review">review</option>
+              </select>
+            </div>
+            <div class="composer-actions">
+              <button class="primary-btn" type="submit">Save Memory JSON</button>
+              <button class="ghost-btn" type="button" id="memoryRefreshBtn">Refresh</button>
+            </div>
+          </form>
+          <pre id="memoryPreview" class="memory-preview">{ "regime": "Momentum", "strategy": "Iron Condor", "result": "loss" }</pre>
+          <div id="memoryList" class="agent-list"></div>
         </section>
 
         <section class="panel subpanel">

@@ -11,14 +11,17 @@ Accept a user question, choose the required tools, run a reflection loop when th
 1. Market Regime Agent
 2. Option Playbook Agent
 3. Reflection Agent
-4. Validation Agent
-5. Attribution Agent
+4. Memory Agent
+5. Validation Agent
+6. Attribution Agent
 
 ## Tool Registry
 
 `tool-registry.json` is the source of truth for the Commander routing flow.
 The Reflection Agent reviews strategy recommendations and, when risk is high,
 re-calls the Validation Agent before the final answer is produced.
+The Memory Agent stores `regime`, `strategy`, and `result` as JSON so the next
+recommendation can reference prior outcomes.
 
 ## Files
 

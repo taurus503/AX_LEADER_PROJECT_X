@@ -30,6 +30,15 @@ export const DEFAULT_TOOL_REGISTRY = {
       outputs: ["Risk Review", "Validation Trigger", "Revised Answer", "Residual Risk"]
     },
     {
+      id: "memory-agent",
+      name: "Memory Agent",
+      agentId: "memory",
+      label: "Memory",
+      purpose: "Persist regime / strategy / result JSON",
+      triggers: ["memory", "remember", "save", "history", "store", "저장", "기억"],
+      outputs: ["regime", "strategy", "result", "timestamp"]
+    },
+    {
       id: "validation-agent",
       name: "Validation Agent",
       agentId: "validation",
@@ -61,7 +70,7 @@ const ROUTE_RULES = [
     intent: "Strategy",
     keywords: ["추천 전략", "추천전략", "전략", "playbook", "옵션", "포지션", "trade"],
     sequence: ["regime-agent", "playbook-agent", "reflection-agent"],
-    summary: "This is a strategy request. We route through regime, playbook, reflection, and validation."
+    summary: "This is a strategy request. Route through regime, playbook, reflection, and validation."
   },
   {
     intent: "Market Regime",
@@ -86,8 +95,16 @@ const ROUTE_RULES = [
     keywords: ["성과", "분해", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl"],
     sequence: ["attribution-agent"],
     summary: "This request focuses on performance decomposition."
+  },
+  {
+    intent: "Memory",
+    keywords: ["memory", "remember", "저장", "기억", "store", "history"],
+    sequence: ["memory-agent"],
+    summary: "This request is about storing or recalling JSON memory."
   }
 ];
+
+const MEMORY_STORAGE_KEY = "option-commander-memory-v1";
 
 function normalize(text = "") {
   return String(text)
@@ -110,6 +127,79 @@ function getTool(registry, id) {
   return registry.tools.find((tool) => tool.id === id) || null;
 }
 
+export function loadMemoryRecords() {
+  if (typeof window === "undefined" || !window.localStorage) return [];
+  try {
+    const raw = window.localStorage.getItem(MEMORY_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveMemoryRecord(record) {
+  const next = [
+    {
+      regime: String(record?.regime || "").trim(),
+      strategy: String(record?.strategy || "").trim(),
+      result: String(record?.result || "").trim(),
+      timestamp: record?.timestamp || new Date().toISOString()
+    },
+    ...loadMemoryRecords()
+  ]
+    .filter((item) => item.regime || item.strategy || item.result)
+    .slice(0, 20);
+
+  if (typeof window !== "undefined" && window.localStorage) {
+    window.localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(next));
+  }
+
+  return next;
+}
+
+function getMemoryCue(memoryRecords, regime, strategy) {
+  const normalizedRegime = normalize(regime);
+  const normalizedStrategy = normalize(strategy);
+  const match = [...memoryRecords]
+    .reverse()
+    .find((record) => {
+      const sameRegime = normalizedRegime && normalize(record.regime) === normalizedRegime;
+      const sameStrategy = normalizedStrategy && normalize(record.strategy) === normalizedStrategy;
+      return sameRegime || sameStrategy;
+    });
+
+  if (!match) return null;
+
+  const result = normalize(match.result);
+  const loss = ["loss", "reject", "fail"].includes(result);
+
+  if (!loss) {
+    return {
+      match,
+      shouldCaution: false,
+      note: `Previous memory shows ${match.regime || "unknown regime"} / ${match.strategy || "unknown strategy"} ended in ${match.result || "unknown"}.`
+    };
+  }
+
+  return {
+    match,
+    shouldCaution: true,
+    note: `Previous memory shows ${match.regime || "unknown regime"} / ${match.strategy || "unknown strategy"} ended in ${match.result || "unknown"}.`
+  };
+}
+
+function getGenericMemoryCue(memoryRecords) {
+  const lastLoss = [...memoryRecords].reverse().find((record) => ["loss", "reject", "fail"].includes(normalize(record.result)));
+  if (!lastLoss) return null;
+
+  return {
+    match: lastLoss,
+    shouldCaution: true,
+    note: `Earlier memory shows ${lastLoss.regime || "unknown regime"} / ${lastLoss.strategy || "unknown strategy"} ended in ${lastLoss.result || "loss"}.`
+  };
+}
+
 function selectRoute(question, registry) {
   const q = normalize(question);
   const matched = ROUTE_RULES
@@ -119,11 +209,13 @@ function selectRoute(question, registry) {
 
   const wantsPerformance = q.includes("성과") || q.includes("분해") || q.includes("attribution");
   const wantsReflection = q.includes("reflection") || q.includes("self review") || q.includes("검토") || q.includes("recheck");
+  const wantsMemory = q.includes("memory") || q.includes("remember") || q.includes("저장") || q.includes("기억");
 
   let sequence = matched.flatMap((rule) => rule.sequence);
   if (!sequence.length) sequence = q ? ["regime-agent", "playbook-agent"] : ["regime-agent"];
   if (wantsPerformance) sequence = ["regime-agent", "playbook-agent", "reflection-agent", "validation-agent", "attribution-agent"];
   if (wantsReflection) sequence = unique(["regime-agent", "playbook-agent", "reflection-agent", "validation-agent"]);
+  if (wantsMemory) sequence = ["memory-agent"];
 
   sequence = unique(sequence).filter((id) => getTool(registry, id));
   if (!sequence.length) sequence = ["regime-agent", "playbook-agent"];
@@ -139,15 +231,17 @@ function computeConfidence(question, sequence, matched) {
   return Math.max(0.55, Math.min(0.94, Number(score.toFixed(2))));
 }
 
-function buildReasoning(sequence, matched) {
+function buildReasoning(sequence, matched, memoryCue) {
   const lines = [];
   const intentText = matched[0]?.summary || "The question is broad, so we apply the default planner path.";
   lines.push(intentText);
   if (sequence.includes("regime-agent")) lines.push("We start with Regime Agent to anchor the market state.");
   if (sequence.includes("playbook-agent")) lines.push("We then call Playbook Agent to get strategy candidates.");
   if (sequence.includes("reflection-agent")) lines.push("Reflection Agent self-checks the strategy result before finalizing.");
+  if (sequence.includes("memory-agent")) lines.push("Memory Agent stores or recalls the JSON record.");
   if (sequence.includes("validation-agent")) lines.push("Validation Agent is used to re-check risk and label the plan.");
   if (sequence.includes("attribution-agent")) lines.push("Attribution Agent decomposes the outcome into component effects.");
+  if (memoryCue?.note) lines.push(memoryCue.note);
   return lines;
 }
 
@@ -161,40 +255,44 @@ function buildRegimeCall() {
   };
 }
 
-function buildPlaybookCall(question, context) {
+function buildPlaybookCall(question) {
   const riskLevel = /high|risk|volatile/i.test(question) ? "High" : "Medium";
   const strategyScore = riskLevel === "High" ? 86 : 92;
   return {
-    topRecommended: ["Bull Call Spread", "Call Backspread", "Covered Call"],
+    topRecommended: riskLevel === "High"
+      ? ["Iron Condor", "Covered Call", "Calendar Spread"]
+      : ["Bull Call Spread", "Call Backspread", "Covered Call"],
     avoidNow: ["Short Straddle", "Short Put", "Reverse Calendar"],
     strategyScore,
     riskLevel,
     expectedReturn: riskLevel === "High" ? "+9.8%" : "+12.4%",
-    playbookMapping: `${context.intent || "Strategy"} intent mapped from "${question}"`
+    playbookMapping: `Strategy intent mapped from "${question}"`
   };
 }
 
-function buildReflectionCall(question, playbookOutput) {
+function buildReflectionCall(question, playbookOutput, memoryCue) {
   const risky =
     (playbookOutput?.riskLevel || "Medium") !== "Low" ||
     (playbookOutput?.strategyScore || 0) < 95 ||
-    /risk|위험|리스크/i.test(question);
+    /risk|위험|리스크/i.test(question) ||
+    Boolean(memoryCue?.shouldCaution);
+
   return {
     selfReview: risky ? "Risk is high. Recheck with Validation Agent." : "Risk is acceptable. Finalize with light validation.",
     shouldRevalidate: risky,
     reflectionNote: risky
-      ? "The strategy has edge, but tail risk and event sensitivity need one more pass."
+      ? `The strategy has edge, but tail risk and event sensitivity need one more pass.${memoryCue?.note ? ` Memory cue: ${memoryCue.note}` : ""}`
       : "The strategy looks balanced enough to move forward."
   };
 }
 
-function buildValidationCall(stage, reflectionOutput) {
+function buildValidationCall(stage, reflectionOutput, memoryCue) {
   const label = reflectionOutput?.shouldRevalidate ? "REVIEW" : "PASS";
   return {
     label,
     validationScore: reflectionOutput?.shouldRevalidate ? 69 : 82,
     riskWarning: reflectionOutput?.shouldRevalidate
-      ? "Risk is elevated. Validate tail risk and event sensitivity again."
+      ? `Risk is elevated. Validate tail risk and event sensitivity again.${memoryCue?.shouldCaution ? " Memory suggests a prior loss." : ""}`
       : "Risk is acceptable with current evidence.",
     validationComment: stage === "recheck"
       ? "This is the re-run after Reflection Agent flagged risk."
@@ -213,6 +311,13 @@ function buildAttributionCall() {
   };
 }
 
+function buildMemoryCall(memoryRecords) {
+  return {
+    storedCount: memoryRecords.length,
+    recent: memoryRecords.slice(0, 3)
+  };
+}
+
 function invokeTool(tool, question, context) {
   const base = {
     id: tool.id,
@@ -222,38 +327,29 @@ function invokeTool(tool, question, context) {
     purpose: tool.purpose
   };
 
-  if (tool.id === "regime-agent") {
-    return { ...base, output: buildRegimeCall() };
-  }
-
-  if (tool.id === "playbook-agent") {
-    return { ...base, output: buildPlaybookCall(question, context) };
-  }
-
+  if (tool.id === "regime-agent") return { ...base, output: buildRegimeCall() };
+  if (tool.id === "playbook-agent") return { ...base, output: buildPlaybookCall(question) };
   if (tool.id === "reflection-agent") {
     const playbookCall = context.calls.find((call) => call.id === "playbook-agent");
-    const output = buildReflectionCall(question, playbookCall?.output);
+    const output = buildReflectionCall(question, playbookCall?.output, context.memoryCue);
     return { ...base, output };
   }
-
+  if (tool.id === "memory-agent") return { ...base, output: buildMemoryCall(context.memoryRecords || []) };
   if (tool.id === "validation-agent") {
     const reflectionCall = context.calls.find((call) => call.id === "reflection-agent");
     const stage = context.stage || "initial";
-    return { ...base, output: buildValidationCall(stage, reflectionCall?.output) };
+    return { ...base, output: buildValidationCall(stage, reflectionCall?.output, context.memoryCue) };
   }
-
-  if (tool.id === "attribution-agent") {
-    return { ...base, output: buildAttributionCall() };
-  }
-
+  if (tool.id === "attribution-agent") return { ...base, output: buildAttributionCall() };
   return { ...base, output: { message: "No handler available" } };
 }
 
-function buildSummary(intent, sequence, confidence, registry, revisionNote = "") {
+function buildSummary(intent, sequence, confidence, registry, revisionNote = "", memoryCue = null) {
   const labels = sequence.map((id) => getTool(registry, id)?.name).filter(Boolean);
   const chain = labels.length ? labels.join(" → ") : "Regime Agent";
   const base = `${intent} request routed through ${chain}. Planner confidence is ${(confidence * 100).toFixed(0)}%.`;
-  return revisionNote ? `${base} ${revisionNote}` : base;
+  const memoryNote = memoryCue?.note ? ` Memory: ${memoryCue.note}` : "";
+  return `${base}${revisionNote ? ` ${revisionNote}` : ""}${memoryNote}`;
 }
 
 function buildBattlePlan(sequence, intent) {
@@ -264,43 +360,38 @@ function buildBattlePlan(sequence, intent) {
   ];
 }
 
-export function planQuestion(question, registry = DEFAULT_TOOL_REGISTRY) {
+export function planQuestion(question, registry = DEFAULT_TOOL_REGISTRY, memoryRecords = []) {
   const input = String(question || "").trim();
   const { sequence, matched } = selectRoute(input, registry);
   const confidence = computeConfidence(input, sequence, matched);
   const intent = matched[0]?.intent || (sequence.includes("attribution-agent") ? "Attribution" : sequence.includes("validation-agent") ? "Validation" : "Strategy");
 
-  const selectedTools = sequence.map((id, index) => {
-    const tool = getTool(registry, id);
-    return tool ? { ...tool, order: index + 1 } : null;
-  }).filter(Boolean);
+  const selectedTools = sequence
+    .map((id, index) => {
+      const tool = getTool(registry, id);
+      return tool ? { ...tool, order: index + 1 } : null;
+    })
+    .filter(Boolean);
 
-  const reasoning = buildReasoning(sequence, matched);
   const calls = [];
-  const routeContext = { intent, confidence, sequence, calls };
-  let needsValidationRecheck = false;
-  let usedValidationRecheck = false;
+  const routeContext = { intent, confidence, sequence, calls, memoryRecords, memoryCue: null };
 
   for (const tool of selectedTools) {
     const call = invokeTool(tool, input, routeContext);
     calls.push(call);
 
-    if (tool.id === "reflection-agent" && call.output.shouldRevalidate) {
-      needsValidationRecheck = true;
-    }
-
-    if (tool.id === "validation-agent" && needsValidationRecheck && !usedValidationRecheck) {
-      calls[calls.length - 1] = {
-        ...invokeTool(tool, input, { ...routeContext, stage: "recheck" }),
-        id: "validation-agent-recheck",
-        name: "Validation Agent (Recheck)",
-        label: "Module 3"
-      };
-      usedValidationRecheck = true;
+    if (tool.id === "playbook-agent") {
+      const regimeCall = calls.find((item) => item.id === "regime-agent");
+      const topStrategy = call.output?.topRecommended?.[0] || "";
+      routeContext.memoryCue = getMemoryCue(memoryRecords, regimeCall?.output?.currentRegime, topStrategy) || getGenericMemoryCue(memoryRecords);
     }
   }
 
-  if (needsValidationRecheck && !usedValidationRecheck) {
+  const reflectionCall = calls.find((call) => call.id === "reflection-agent");
+  const memoryCue = routeContext.memoryCue;
+  const needsValidationRecheck = Boolean(reflectionCall?.output?.shouldRevalidate);
+
+  if (needsValidationRecheck) {
     const validationTool = getTool(registry, "validation-agent");
     if (validationTool) {
       calls.push({
@@ -309,13 +400,11 @@ export function planQuestion(question, registry = DEFAULT_TOOL_REGISTRY) {
         name: "Validation Agent (Recheck)",
         label: "Module 3"
       });
-      usedValidationRecheck = true;
     }
   }
 
-  const reflectionCall = calls.find((call) => call.id === "reflection-agent");
   const validationCall = [...calls].reverse().find((call) => String(call.id).includes("validation-agent"));
-  const revisionNote = reflectionCall?.output?.shouldRevalidate
+  const revisionNote = needsValidationRecheck
     ? "Reflection Agent flagged risk and triggered a second validation pass."
     : "Reflection Agent accepted the strategy with no extra validation pass.";
 
@@ -325,13 +414,14 @@ export function planQuestion(question, registry = DEFAULT_TOOL_REGISTRY) {
     confidence,
     selectedTools,
     selectedToolIds: sequence,
-    reasoning,
+    reasoning: buildReasoning(sequence, matched, memoryCue),
     toolCalls: calls,
     reflection: reflectionCall?.output || null,
     validation: validationCall?.output || null,
+    memoryCue,
     battlePlan: buildBattlePlan(sequence, intent),
-    summary: buildSummary(intent, sequence, confidence, registry, revisionNote),
-    finalAnswer: reflectionCall?.output?.shouldRevalidate
+    summary: buildSummary(intent, sequence, confidence, registry, revisionNote, memoryCue),
+    finalAnswer: needsValidationRecheck
       ? "Revised answer: the strategy should be treated as REVIEW until the rechecked validation clears the risk."
       : "Revised answer: the strategy can move forward with current risk controls.",
     updatedAt: new Date().toISOString()

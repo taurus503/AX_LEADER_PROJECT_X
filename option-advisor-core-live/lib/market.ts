@@ -178,7 +178,7 @@ async function fetchYahooChart(
   return points;
 }
 
-function pickPointOnOrBefore(
+function pickPointForDate(
   points: PricePoint[],
   targetDate: string | null,
 ): { index: number; point: PricePoint } {
@@ -190,18 +190,37 @@ function pickPointOnOrBefore(
     return { index: points.length - 1, point: points[points.length - 1] };
   }
 
-  let selectedIndex = -1;
+  let beforeIndex = -1;
+  let afterIndex = -1;
   for (let index = 0; index < points.length; index += 1) {
-    if (points[index].date <= targetDate) {
-      selectedIndex = index;
+    const pointDate = points[index].date;
+    if (pointDate <= targetDate) {
+      beforeIndex = index;
+    } else if (afterIndex < 0) {
+      afterIndex = index;
     }
   }
 
-  if (selectedIndex < 0) {
-    return { index: 0, point: points[0] };
+  if (beforeIndex < 0) {
+    const fallbackIndex = afterIndex >= 0 ? afterIndex : 0;
+    return { index: fallbackIndex, point: points[fallbackIndex] };
   }
 
-  return { index: selectedIndex, point: points[selectedIndex] };
+  if (afterIndex < 0) {
+    return { index: beforeIndex, point: points[beforeIndex] };
+  }
+
+  const targetTime = Date.parse(`${targetDate}T00:00:00Z`);
+  const beforeTime = Date.parse(`${points[beforeIndex].date}T00:00:00Z`);
+  const afterTime = Date.parse(`${points[afterIndex].date}T00:00:00Z`);
+  const beforeGap = Math.abs(targetTime - beforeTime);
+  const afterGap = Math.abs(afterTime - targetTime);
+
+  if (afterGap < beforeGap) {
+    return { index: afterIndex, point: points[afterIndex] };
+  }
+
+  return { index: beforeIndex, point: points[beforeIndex] };
 }
 
 function classifyRegime(skewScore: number, volScore: number): {
@@ -268,7 +287,7 @@ export async function getMarketSnapshot(
 
   try {
     const points = await fetchYahooChart("^KS200", "2y", "1d");
-    const { index, point } = pickPointOnOrBefore(points, selectedDate);
+    const { index, point } = pickPointForDate(points, selectedDate);
 
     if (index < 20) {
       throw new Error("Not enough historical data to compute scores");

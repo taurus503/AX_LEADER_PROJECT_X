@@ -1,0 +1,109 @@
+{
+  "agentName": "KOSPI200 Option Warfare Intelligence Agent",
+  "asOf": "2026-06-17",
+  "scenarios": {
+    "bullCalm": {
+      "label": "Bull/Calm",
+      "description": "방향성 우위, 변동성 안정",
+      "returns": { "oneDay": 0.8, "oneWeek": 2.2, "oneMonth": 6.4 },
+      "volatility20d": 18.5,
+      "eventRisk": "low",
+      "newsSentiment": "positive",
+      "breadth": "strong",
+      "trendStrength": 72,
+      "slem": 0.71,
+      "gelmanRubin": 1.03,
+      "tradabilityMaskValid": true
+    },
+    "bearCrisis": {
+      "label": "Bear/Crisis",
+      "description": "하락 압력, 변동성 확대",
+      "returns": { "oneDay": -2.9, "oneWeek": -6.8, "oneMonth": -12.4 },
+      "volatility20d": 58.7,
+      "eventRisk": "high",
+      "newsSentiment": "negative",
+      "breadth": "weak",
+      "trendStrength": 19,
+      "slem": 0.94,
+      "gelmanRubin": 1.14,
+      "tradabilityMaskValid": true
+    },
+    "transition": {
+      "label": "Transition",
+      "description": "방향 불명확, 검토 필요",
+      "returns": { "oneDay": 1.7, "oneWeek": -0.6, "oneMonth": 4.1 },
+      "volatility20d": 36.2,
+      "eventRisk": "high",
+      "newsSentiment": "mixed",
+      "breadth": "weak",
+      "trendStrength": 48,
+      "slem": 0.88,
+      "gelmanRubin": 1.08,
+      "tradabilityMaskValid": true,
+      "asOf": "2026-06-12"
+    },
+    "custom": {
+      "label": "Custom",
+      "description": "사용자 직접 입력"
+    }
+  },
+  "market": {
+    "symbol": "^KS200",
+    "asOf": "2026-06-12",
+    "latestClose": 334.8,
+    "previousTradingDayClose": 332.1,
+    "returns": { "oneDay": 0.81, "oneWeek": 2.21, "oneMonth": 4.1 },
+    "volatility20d": 36.2,
+    "historicalVolatility": 36.2,
+    "eventRisk": "high",
+    "newsSentiment": "mixed",
+    "breadth": "weak",
+    "trendStrength": 48,
+    "slem": 0.88,
+    "gelmanRubin": 1.08,
+    "tradabilityMaskValid": true,
+    "lastUpdate": "2026-06-12 09:10 KST",
+    "source": "sample-data.json"
+  },
+  "news": {
+    "asOf": "2026-06-12",
+    "keywords": ["KOSPI200", "옵션", "변동성", "만기", "헤지", "Breadth"],
+    "items": [
+      {
+        "title": "KOSPI200 변동성 확대 속 옵션 헤지 수요 증가",
+        "source": "Market Desk",
+        "publishedAt": "2026-06-12"
+      },
+      {
+        "title": "만기 전 수급 엇갈리며 지수선물 방향성 혼재",
+        "source": "Derivatives Daily",
+        "publishedAt": "2026-06-12"
+      },
+      {
+        "title": "breadth 약세 지속, 방어형 전략 선호",
+        "source": "Strategy Note",
+        "publishedAt": "2026-06-12"
+      },
+      {
+        "title": "외국인 선물 순매수 전환, 단기 반등 기대",
+        "source": "Equity Report",
+        "publishedAt": "2026-06-12"
+      },
+      {
+        "title": "옵션 프리미엄은 높은 편, 이벤트 리스크 주의",
+        "source": "Volatility Watch",
+        "publishedAt": "2026-06-12"
+      },
+      {
+        "title": "기관 차익거래 재개, 지수 민감도 점검 필요",
+        "source": "Flow Monitor",
+        "publishedAt": "2026-06-12"
+      }
+    ]
+  },
+  "beginnerExamples": [
+    "왜 73%인가요?",
+    "뉴스는 왜 중요하죠?",
+    "지금은 어떤 전략이 좋아요?"
+  ]
+}

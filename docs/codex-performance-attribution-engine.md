@@ -1,60 +1,47 @@
-# Codex Performance Attribution Engine Screen Handoff
+# Codex Performance Attribution Engine
 
-이 문서는 `codex/performance-attribution-engine` 브랜치의 **화면 인수인계 메모**입니다.
-핵심 대상은 `index.html`이며, 이 화면을 다른 컴퓨터에서 이어서 수정할 수 있도록 구성과 편집 지점을 적어둡니다.
+이 문서는 `codex/performance-attribution-engine` 브랜치 전용 인수인계 메모입니다.
 
 ## 화면 목적
 
-- 성과 기여도 해석 결과를 한 화면에서 읽기 쉽게 보여줌
-- 인포그래픽 요소를 섞어, 성과 분해와 레짐 해석을 빠르게 파악
-- 외부 공개는 Vercel production URL로 확인
-
-## 화면 구조
-
-- `hero`
-  - 화면 제목과 핵심 메시지
-  - 상단에 성과 기여도 요약 막대
-- `핵심 인사이트`
-  - 알파/베타 분리, 레짐 적합성, 데이터 정합성, 사람 검토 포인트
-- `분석 파이프라인`
-  - Input → Decompose → Check → Signal 흐름
-- `기여도 해석`
-  - Brinson Attribution, Factor Attribution, Risk vs Skill
-- `레짐 클러스터`
-  - Bull / Transition / Bear 구간과 상태 설명
-- `보고서와 업데이트 신호`
-  - 리포트 필수 항목과 JSON update signal
+- 외부 전략 플레이북을 자동으로 읽어옴
+- 전략을 랜덤 또는 수동으로 선택함
+- 사용자가 고른 기간의 거래를 필터링해 성과를 평가함
+- 결과를 인포그래픽, 요약 카드, 차트, 트레이드 표로 보여줌
 
 ## 주요 파일
 
 - `index.html`
-  - 실제 화면 본문, 스타일, 인포그래픽이 모두 들어 있는 메인 파일
-  - 수정 우선순위 1번
+  - 화면 본문과 스타일, 평가 로직이 들어 있는 메인 파일
+  - 다른 사람이 가장 먼저 볼 파일
+- `api/proxy.js`
+  - 외부 플레이북 HTML을 같은 출처로 가져오는 Vercel 함수
+  - 외부 사이트는 수정하지 않음
 - `vercel.json`
-  - Vercel 정적 라우팅용 설정
-- `README.md`
-  - 저장소 첫 화면에 Vercel live demo 링크를 보여주는 안내 파일
+  - 정적 배포 설정
 - `performance attribution engine.txt`
   - 원문 참고자료
 
-## 작업 원칙
+## 유지보수 원칙
 
-- `main` 브랜치의 README는 수정하지 않음
-- 다른 폴더의 README도 수정하지 않음
-- 화면 수정은 가능한 한 `index.html`에서 시작
-- 민감한 파일, 임시 파일, 대용량 파일은 저장소에 올리지 않음
+- `main` 브랜치의 README는 건드리지 않음
+- 다른 폴더의 README도 건드리지 않음
+- 이 브랜치에서만 화면과 배포 보조 파일을 추가/수정함
+- 외부 원본 사이트는 변경하지 않음
+- 민감한 파일, 임시 파일, 빌드 산출물은 저장소에 올리지 않음
 
-## 유지보수 방법
+## 구현 흐름
 
-1. 화면 텍스트나 레이아웃은 `index.html`에서 수정
-2. 배포 관련 설정은 `vercel.json`에서 수정
-3. 저장소 첫 화면 안내는 `README.md`에서 수정
-4. 변경 후 Vercel URL에서 확인
+1. `index.html`이 `/api/proxy?url=...`로 외부 페이지를 요청함
+2. `api/proxy.js`가 허용된 호스트만 서버 측에서 읽어옴
+3. 화면에서 `playbookData`와 `playbookBacktestData`를 추출함
+4. 랜덤 전략 또는 선택 전략을 기간별로 평가함
+5. 결과를 카드, 차트, 표로 렌더링함
 
 ## 협업 시 확인 위치
 
 - 현재 브랜치: `codex/performance-attribution-engine`
 - 화면 파일: `index.html`
+- 프록시 함수: `api/proxy.js`
 - 배포 설정: `vercel.json`
-- 저장소 첫 화면: `README.md`
-- 외부 확인: https://option-rho.vercel.app
+- 외부 확인: `https://option-rho.vercel.app`

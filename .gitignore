@@ -12,3 +12,7 @@ temp_*
 *.tar
 *.gz
 *.7z
+
+.vercel
+.openai/
+codex4-attribution-preview.html

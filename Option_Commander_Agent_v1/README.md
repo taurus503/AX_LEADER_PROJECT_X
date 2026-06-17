@@ -13,6 +13,10 @@ Planner 기반 Commander Agent 데모입니다.
 3. Validation Agent
 4. Attribution Agent
 
+## Tool Registry
+
+`tool-registry.json`에 등록된 Tool 목록을 Commander가 읽고, 질문 의도에 따라 호출 순서를 결정합니다.
+
 ## 구성 파일
 
 - `index.html`

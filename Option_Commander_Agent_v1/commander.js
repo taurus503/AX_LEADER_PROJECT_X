@@ -1,8 +1,9 @@
-import { DEFAULT_REGISTRY, loadRegistry, planQuestion } from "./planner.js";
+import { DEFAULT_TOOL_REGISTRY, loadToolRegistry, planQuestion } from "./planner.js";
 
 const els = {
   transcript: document.getElementById("transcript"),
   agentList: document.getElementById("agentList"),
+  toolCallList: document.getElementById("toolCallList"),
   battlePlan: document.getElementById("battlePlan"),
   decisionTrail: document.getElementById("decisionTrail"),
   questionInput: document.getElementById("questionInput"),
@@ -23,11 +24,12 @@ const els = {
   metricIntent: document.getElementById("metricIntent"),
   metricIntentNote: document.getElementById("metricIntentNote"),
   turnHint: document.getElementById("turnHint"),
-  updatedAt: document.getElementById("updatedAt")
+  updatedAt: document.getElementById("updatedAt"),
+  registryMeta: document.getElementById("registryMeta")
 };
 
 const state = {
-  registry: DEFAULT_REGISTRY,
+  registry: DEFAULT_TOOL_REGISTRY,
   history: []
 };
 
@@ -48,7 +50,10 @@ function escapeHtml(value) {
 }
 
 function renderQuickPrompts(prompts) {
-  els.quickPrompts.innerHTML = prompts.map((prompt) => `<button type="button" class="prompt-btn" data-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("");
+  els.quickPrompts.innerHTML = prompts
+    .map((prompt) => `<button type="button" class="prompt-btn" data-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`)
+    .join("");
+
   els.quickPrompts.querySelectorAll("[data-prompt]").forEach((button) => {
     button.addEventListener("click", () => {
       els.questionInput.value = button.dataset.prompt || "";
@@ -62,7 +67,7 @@ function renderTranscript() {
     els.transcript.innerHTML = `
       <div class="message">
         <div class="label">Commander</div>
-        <p>질문을 넣으면 Planner가 필요한 Agent만 조합해서 답합니다. 예시 질문으로 빠르게 흐름을 볼 수 있습니다.</p>
+        <p>질문을 넣으면 Planner가 Tool Registry를 읽고 필요한 Agent만 호출합니다.</p>
       </div>
     `;
     return;
@@ -85,55 +90,58 @@ function renderTranscript() {
       </div>
     `;
   }).join("");
+
   els.transcript.scrollTop = els.transcript.scrollHeight;
 }
 
-function renderMetrics(plan) {
-  const confidencePct = Math.round(plan.confidence * 100);
-  els.plannerRing.style.setProperty("--score", confidencePct);
-  els.plannerScore.textContent = `${confidencePct}%`;
-  els.selectedCount.textContent = String(plan.selectedAgents.length);
-  els.currentIntent.textContent = plan.intent;
-  els.metricConfidence.textContent = `${confidencePct}%`;
-  els.metricConfidenceNote.textContent = plan.reasoning[0] || "Planner confidence based on routing clarity.";
-  els.metricDepth.textContent = String(plan.selectedAgents.length);
-  els.metricDepthNote.textContent = `${plan.selectedAgents.length}개의 Agent가 연결됩니다.`;
-  els.metricReadiness.textContent = plan.selectedAgents.length >= 3 ? "High" : "Medium";
-  els.metricReadinessNote.textContent = plan.selectedAgents.length >= 3 ? "다단계 검토 체계가 구성되었습니다." : "짧은 질의는 라이트 라우팅으로 응답합니다.";
-  els.metricIntent.textContent = plan.intent;
-  els.metricIntentNote.textContent = plan.summary;
-  els.latencyLabel.textContent = plan.selectedAgents.length >= 3 ? "Planner+" : "Instant";
-  els.updatedAt.textContent = fmtTime(plan.updatedAt);
-  els.turnHint.textContent = `${plan.selectedAgents.length}개 Agent가 선택되었습니다.`;
-}
-
-function renderAgents(plan) {
-  els.agentList.innerHTML = state.registry.agents.map((agent) => {
-    const isActive = plan.selectedAgentIds.includes(agent.id);
-    const statusClass = isActive ? "good" : "warn";
-    const sample = agent.sample || {};
-    const sampleLine =
-      agent.id === "market-regime" ? `${sample.regime || "-"} / confidence ${Math.round((sample.confidence || 0) * 100)}%`
-        : agent.id === "option-playbook" ? `${sample.top || "-"} · avoid ${sample.avoid || "-"}`
-        : agent.id === "validation" ? `${sample.label || "-"} · score ${sample.score || "-"}`
-        : `${sample.allocation ?? "-"} / ${sample.selection ?? "-"}`;
+function renderRegistry(plan) {
+  els.registryMeta.textContent = `${state.registry.tools.length} tools`;
+  els.agentList.innerHTML = state.registry.tools.map((tool) => {
+    const isActive = plan.selectedToolIds.includes(tool.id);
+    const sampleText =
+      tool.id === "regime-agent"
+        ? "Transition / confidence 74%"
+        : tool.id === "playbook-agent"
+          ? "Bull Call Spread → Short Straddle"
+          : tool.id === "validation-agent"
+            ? "REVIEW / 68"
+            : "allocation 2.4 / selection 3.1";
 
     return `
       <article class="agent-card ${isActive ? "active" : ""}">
         <div class="agent-card__head">
-          <strong>${escapeHtml(agent.name)}</strong>
-          <span class="tag ${statusClass}">${isActive ? "selected" : "standby"}</span>
+          <strong>${escapeHtml(tool.name)}</strong>
+          <span class="tag ${isActive ? "good" : "warn"}">${isActive ? "selected" : "standby"}</span>
         </div>
         <div class="tag-row">
-          <span class="tag">${escapeHtml(agent.alias)}</span>
-          <span class="tag">${escapeHtml(agent.purpose)}</span>
+          <span class="tag">${escapeHtml(tool.label)}</span>
+          <span class="tag">${escapeHtml(tool.purpose)}</span>
         </div>
         <div class="tag-row">
-          ${agent.outputs.slice(0, 3).map((output) => `<span class="tag">${escapeHtml(output)}</span>`).join("")}
+          ${tool.outputs.slice(0, 3).map((output) => `<span class="tag">${escapeHtml(output)}</span>`).join("")}
         </div>
         <div class="tag-row">
-          <span class="tag ${isActive ? "good" : ""}">${escapeHtml(sampleLine)}</span>
+          <span class="tag ${isActive ? "good" : ""}">${escapeHtml(sampleText)}</span>
         </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderToolCalls(plan) {
+  els.toolCallList.innerHTML = plan.toolCalls.map((call) => {
+    const outputLine = call.id === "regime-agent"
+      ? `Regime: ${call.output.currentRegime}, Event Risk: ${call.output.eventRisk}, Confidence: ${Math.round(call.output.confidenceScore * 100)}%`
+      : call.id === "playbook-agent"
+        ? `Top: ${call.output.topRecommended[0]}, Avoid: ${call.output.avoidNow[0]}, Score: ${call.output.strategyScore}`
+        : call.id === "validation-agent"
+          ? `Label: ${call.output.label}, Score: ${call.output.validationScore}`
+          : `Alpha: ${call.output.alphaSource}, Update: ${call.output.updateSignal}`;
+
+    return `
+      <article class="trail-card">
+        <strong>${escapeHtml(call.name)}</strong>
+        <p>${escapeHtml(outputLine)}</p>
       </article>
     `;
   }).join("");
@@ -153,7 +161,7 @@ function renderTrail(plan) {
     <strong>${escapeHtml(plan.summary)}</strong>
     <p>${escapeHtml(plan.reasoning.join(" "))}</p>
     <div class="tag-row" style="margin-top:8px;">
-      ${plan.selectedAgents.map((agent) => `<span class="tag">${escapeHtml(agent.name)}</span>`).join("")}
+      ${plan.selectedTools.map((tool) => `<span class="tag">${escapeHtml(tool.name)}</span>`).join("")}
     </div>
   `;
 }
@@ -161,27 +169,46 @@ function renderTrail(plan) {
 function pushConversation(userText, plan) {
   state.history.unshift({
     role: "assistant",
-    text: `${plan.summary}\n\n- Selected: ${plan.selectedAgents.map((agent) => agent.name).join(" → ")}\n- Reason: ${plan.reasoning.join(" ")}\n- Next: ${plan.battlePlan[1]?.text || "검토 포인트 정리"}`
+    text: `${plan.summary}\n\n- Selected: ${plan.selectedTools.map((tool) => tool.name).join(" → ")}\n- Reason: ${plan.reasoning.join(" ")}\n- Next: ${plan.battlePlan[1]?.text || "검토 포인트 정리"}`
   });
   state.history.unshift({ role: "user", text: userText });
+}
+
+function renderMetrics(plan) {
+  const confidencePct = Math.round(plan.confidence * 100);
+  els.plannerRing.style.setProperty("--score", confidencePct);
+  els.plannerScore.textContent = `${confidencePct}%`;
+  els.selectedCount.textContent = String(plan.selectedTools.length);
+  els.currentIntent.textContent = plan.intent;
+  els.metricConfidence.textContent = `${confidencePct}%`;
+  els.metricConfidenceNote.textContent = plan.reasoning[0] || "Planner confidence based on routing clarity.";
+  els.metricDepth.textContent = String(plan.selectedTools.length);
+  els.metricDepthNote.textContent = `${plan.selectedTools.length}개의 Tool이 연결됩니다.`;
+  els.metricReadiness.textContent = plan.selectedTools.length >= 3 ? "High" : "Medium";
+  els.metricReadinessNote.textContent = plan.selectedTools.length >= 3 ? "다단계 검토 체계가 구성되었습니다." : "짧은 질의는 라이트 라우팅으로 응답합니다.";
+  els.metricIntent.textContent = plan.intent;
+  els.metricIntentNote.textContent = plan.summary;
+  els.latencyLabel.textContent = plan.selectedTools.length >= 3 ? "Planner+" : "Instant";
+  els.updatedAt.textContent = fmtTime(plan.updatedAt);
+  els.turnHint.textContent = `${plan.selectedTools.length}개 Tool이 선택되었습니다.`;
 }
 
 function runPlan() {
   const question = els.questionInput.value.trim();
   if (!question) return;
-
   const plan = planQuestion(question, state.registry);
   pushConversation(question, plan);
   renderTranscript();
   renderMetrics(plan);
-  renderAgents(plan);
+  renderRegistry(plan);
+  renderToolCalls(plan);
   renderBattlePlan(plan);
   renderTrail(plan);
 }
 
 async function bootstrap() {
-  state.registry = await loadRegistry();
-  renderQuickPrompts(state.registry.prompts || DEFAULT_REGISTRY.prompts);
+  state.registry = await loadToolRegistry();
+  renderQuickPrompts(state.registry.prompts || DEFAULT_TOOL_REGISTRY.prompts);
   const initialQuestion = state.registry.prompts?.[0] || "지금 추천 전략은?";
   els.questionInput.value = initialQuestion;
   runPlan();
@@ -197,10 +224,11 @@ els.resetBtn.addEventListener("click", () => {
   els.questionInput.value = "";
   renderTranscript();
   els.agentList.innerHTML = "";
+  els.toolCallList.innerHTML = "";
   els.battlePlan.innerHTML = "";
   els.decisionTrail.innerHTML = `
     <strong>Planner 대기 상태</strong>
-    <p>질문이 들어오면 어떤 Agent를 먼저 호출할지 결정합니다.</p>
+    <p>질문이 들어오면 어떤 Tool을 먼저 호출할지 결정합니다.</p>
   `;
 });
 

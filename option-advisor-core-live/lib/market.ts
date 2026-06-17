@@ -4,6 +4,7 @@ export interface MarketSnapshot {
   source: string;
   selectedDate: string;
   actualDate: string;
+  sourceDate: string;
   k200Close: number;
   k200PrevClose: number | null;
   change1d: number;
@@ -181,46 +182,35 @@ async function fetchYahooChart(
 function pickPointForDate(
   points: PricePoint[],
   targetDate: string | null,
-): { index: number; point: PricePoint } {
+): { index: number; point: PricePoint; exactMatch: boolean } {
   if (!points.length) {
     throw new Error("No points available");
   }
 
   if (!targetDate) {
-    return { index: points.length - 1, point: points[points.length - 1] };
+    return { index: points.length - 1, point: points[points.length - 1], exactMatch: true };
+  }
+
+  const exactIndex = points.findIndex((point) => point.date === targetDate);
+  if (exactIndex >= 0) {
+    return { index: exactIndex, point: points[exactIndex], exactMatch: true };
   }
 
   let beforeIndex = -1;
-  let afterIndex = -1;
   for (let index = 0; index < points.length; index += 1) {
-    const pointDate = points[index].date;
-    if (pointDate <= targetDate) {
+    if (points[index].date < targetDate) {
       beforeIndex = index;
-    } else if (afterIndex < 0) {
-      afterIndex = index;
+    } else {
+      break;
     }
   }
 
   if (beforeIndex < 0) {
-    const fallbackIndex = afterIndex >= 0 ? afterIndex : 0;
-    return { index: fallbackIndex, point: points[fallbackIndex] };
+    const fallbackIndex = 0;
+    return { index: fallbackIndex, point: points[fallbackIndex], exactMatch: false };
   }
 
-  if (afterIndex < 0) {
-    return { index: beforeIndex, point: points[beforeIndex] };
-  }
-
-  const targetTime = Date.parse(`${targetDate}T00:00:00Z`);
-  const beforeTime = Date.parse(`${points[beforeIndex].date}T00:00:00Z`);
-  const afterTime = Date.parse(`${points[afterIndex].date}T00:00:00Z`);
-  const beforeGap = Math.abs(targetTime - beforeTime);
-  const afterGap = Math.abs(afterTime - targetTime);
-
-  if (afterGap < beforeGap) {
-    return { index: afterIndex, point: points[afterIndex] };
-  }
-
-  return { index: beforeIndex, point: points[beforeIndex] };
+  return { index: beforeIndex, point: points[beforeIndex], exactMatch: false };
 }
 
 function classifyRegime(skewScore: number, volScore: number): {
@@ -261,7 +251,8 @@ function buildFallbackSnapshot(selectedDate: string): MarketSnapshot {
   return {
     source: FALLBACK_SNAPSHOT.source,
     selectedDate,
-    actualDate: FALLBACK_SNAPSHOT.actualDate,
+    actualDate: selectedDate,
+    sourceDate: FALLBACK_SNAPSHOT.actualDate,
     k200Close: FALLBACK_SNAPSHOT.k200Close,
     k200PrevClose: FALLBACK_SNAPSHOT.k200PrevClose,
     change1d: FALLBACK_SNAPSHOT.change1d,
@@ -287,7 +278,7 @@ export async function getMarketSnapshot(
 
   try {
     const points = await fetchYahooChart("^KS200", "2y", "1d");
-    const { index, point } = pickPointForDate(points, selectedDate);
+    const { index, point, exactMatch } = pickPointForDate(points, selectedDate);
 
     if (index < 20) {
       throw new Error("Not enough historical data to compute scores");
@@ -320,7 +311,8 @@ export async function getMarketSnapshot(
     return {
       source: "Yahoo Finance public chart API",
       selectedDate,
-      actualDate: point.date,
+      actualDate: selectedDate,
+      sourceDate: point.date,
       k200Close: close,
       k200PrevClose: prevClose,
       change1d: prevClose ? ((close / prevClose - 1) * 100) : 0,
@@ -334,7 +326,9 @@ export async function getMarketSnapshot(
       regimeKey: regime.key,
       regimeLabel: regime.label,
       regimeSubtitle: regime.subtitle,
-      note: "Real-data proxy: volatility uses 20D realized vol, skew uses 20D return skew from KOSPI200 history.",
+      note: exactMatch
+        ? "Real-data proxy: volatility uses 20D realized vol, skew uses 20D return skew from KOSPI200 history."
+        : `Requested date had no direct close in Yahoo chart data, so the latest prior trading close from ${point.date} was used as a proxy.`,
       seriesLength: points.length,
     };
   } catch {

@@ -58,6 +58,14 @@ function formatSignedPct(value: number): string {
   return `${sign}${formatScore(value)}%`;
 }
 
+function formatMarketDateLabel(snapshot: AdvisorSnapshot | null): string {
+  if (!snapshot) return "waiting for data";
+  if (snapshot.market.sourceDate && snapshot.market.sourceDate !== snapshot.actualDate) {
+    return `${snapshot.actualDate} · source ${snapshot.market.sourceDate}`;
+  }
+  return snapshot.actualDate;
+}
+
 function useAdvisorSnapshot(selectedDate: string, refreshToken: number) {
   const [snapshot, setSnapshot] = useState<AdvisorSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -293,7 +301,7 @@ export default function Home() {
           <MetricCard
             label="KOSPI200"
             value={snapshot ? `${formatNumber(snapshot.market.k200Close)} pt` : "..."}
-            delta={snapshot ? `actualDate ${snapshot.actualDate}` : "waiting for data"}
+            delta={snapshot ? `actualDate ${formatMarketDateLabel(snapshot)}` : "waiting for data"}
             tone="default"
           />
           <MetricCard

@@ -650,7 +650,7 @@ function buildOpsNotes(
   overrides: AdvisorInputOverride,
 ): string[] {
   return [
-    `시장 입력: selectedDate=${market.selectedDate}, actualDate=${market.actualDate}, source=${market.source}.`,
+    `시장 입력: selectedDate=${market.selectedDate}, actualDate=${market.actualDate}, sourceDate=${market.sourceDate}, source=${market.source}.`,
     `레짐 입력: ${state.regimeLabel} / ${state.regimeSubtitle} / confidence=${state.confidence.toFixed(1)}.`,
     `Codex 2 연계: ${overrides.codex2Brief ? "override brief 수신" : "현재는 market snapshot 기반 해석"}.`,
     "API 응답은 no-store로 내려서 매 호출마다 최신 상태를 확인할 수 있도록 구성합니다.",

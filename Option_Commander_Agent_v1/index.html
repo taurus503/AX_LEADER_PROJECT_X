@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Option Commander Agent v1</title>
+  <style>
+    :root {
+      --bg: #09111f;
+      --panel: rgba(15, 24, 44, 0.82);
+      --panel-strong: rgba(10, 17, 33, 0.95);
+      --line: rgba(170, 190, 255, 0.18);
+      --line-strong: rgba(170, 190, 255, 0.3);
+      --ink: #eef3ff;
+      --muted: #9aabc9;
+      --blue: #4f7cff;
+      --blue-deep: #214dc8;
+      --teal: #31c9b2;
+      --amber: #f0b84d;
+      --green: #49d29d;
+      --red: #e55a73;
+      --shadow: 0 24px 60px rgba(1, 6, 22, 0.42);
+      --radius: 22px;
+      --radius-sm: 16px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Segoe UI", "Malgun Gothic", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(79, 124, 255, 0.22), transparent 32%),
+        radial-gradient(circle at top right, rgba(49, 201, 178, 0.12), transparent 28%),
+        linear-gradient(180deg, #09111f 0%, #0b1426 40%, #09111b 100%);
+    }
+    a { color: inherit; text-decoration: none; }
+    button, input, textarea { font: inherit; }
+    .shell {
+      width: min(1500px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 16px 0 36px;
+      display: grid;
+      gap: 16px;
+    }
+    .hero,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(18, 28, 52, 0.92), rgba(11, 18, 34, 0.92));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+      gap: 16px;
+      padding: 18px;
+    }
+    .brand {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      min-width: 0;
+    }
+    .mark {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--blue-deep), #69a0ff);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 18px 30px rgba(33, 77, 200, 0.35);
+      font-weight: 1000;
+      letter-spacing: 0.08em;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(28px, 3vw, 44px);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+    }
+    .hero p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+      max-width: 72ch;
+    }
+    .hero-side {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+    .summary-ring {
+      width: 132px;
+      aspect-ratio: 1;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at center, rgba(11, 18, 34, 0.95) 56%, transparent 56.2%),
+        conic-gradient(var(--blue) calc(var(--score, 72) * 1%), rgba(255, 255, 255, 0.08) 0);
+      border: 1px solid var(--line);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      margin-left: auto;
+    }
+    .summary-ring strong {
+      font-size: 32px;
+      font-weight: 1000;
+      line-height: 1;
+    }
+    .summary-ring span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: center;
+      margin-top: 4px;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .status-pill {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 999px;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 0;
+    }
+    .status-pill strong { color: var(--ink); }
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .workflow-card {
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(21, 33, 60, 0.95), rgba(11, 18, 34, 0.95));
+    }
+    .workflow-card span {
+      display: block;
+      font-size: 12px;
+      color: var(--teal);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .workflow-card strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 800;
+    }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .panel { padding: 18px; }
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .section-head h2,
+    .section-head h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    .section-head span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: right;
+    }
+    .transcript {
+      display: grid;
+      gap: 12px;
+      min-height: 380px;
+      max-height: 530px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .message {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      background: linear-gradient(180deg, rgba(18, 28, 52, 0.96), rgba(10, 17, 33, 0.96));
+    }
+    .message.user {
+      border-color: rgba(79, 124, 255, 0.36);
+      background: linear-gradient(180deg, rgba(21, 41, 87, 0.96), rgba(10, 17, 33, 0.96));
+    }
+    .message .label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--teal);
+      margin-bottom: 8px;
+    }
+    .message.user .label { color: #9ec0ff; }
+    .message p {
+      margin: 0;
+      line-height: 1.75;
+      color: var(--ink);
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+    .quick-prompts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .prompt-btn,
+    .primary-btn,
+    .ghost-btn {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      min-height: 42px;
+      padding: 0 14px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      font-weight: 800;
+    }
+    .prompt-btn:hover,
+    .ghost-btn:hover,
+    .primary-btn:hover { transform: translateY(-1px); }
+    .primary-btn {
+      background: linear-gradient(135deg, var(--blue), #1849ab);
+      border-color: transparent;
+    }
+    .composer {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .composer textarea {
+      width: 100%;
+      min-height: 108px;
+      resize: vertical;
+      border-radius: 18px;
+      border: 1px solid rgba(120, 152, 224, 0.45);
+      background: #13213d;
+      color: #f6f9ff;
+      padding: 14px 14px;
+      outline: none;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+    .composer textarea:focus {
+      border-color: rgba(79, 124, 255, 0.95);
+      box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.22);
+      background: #172745;
+    }
+    .composer-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .dashboard-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .metric-card,
+    .subpanel,
+    .agent-card,
+    .battle-card,
+    .trail-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: linear-gradient(180deg, rgba(21, 33, 60, 0.95), rgba(11, 18, 34, 0.95));
+    }
+    .metric-card {
+      padding: 14px;
+      min-height: 106px;
+      display: grid;
+      gap: 8px;
+    }
+    .metric-card span {
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .metric-card strong {
+      font-size: 24px;
+      font-weight: 1000;
+      line-height: 1.1;
+    }
+    .metric-card em {
+      color: var(--muted);
+      font-style: normal;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .subpanel {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .subpanel h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+    .agent-list {
+      display: grid;
+      gap: 10px;
+    }
+    .agent-card {
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+    }
+    .agent-card.active {
+      border-color: rgba(79, 124, 255, 0.6);
+      box-shadow: inset 0 0 0 1px rgba(79, 124, 255, 0.12);
+    }
+    .agent-card__head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .agent-card__head strong {
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .tag.good { color: #a7f0cb; }
+    .tag.warn { color: #ffd98a; }
+    .tag.bad { color: #ffb1bf; }
+    .battle-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: battle;
+    }
+    .battle-list li {
+      counter-increment: battle;
+      display: grid;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .battle-list li strong::before {
+      content: counter(battle) ". ";
+      color: var(--blue);
+    }
+    .battle-list li p,
+    .trail-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 13px;
+    }
+    .trail-card {
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+    }
+    .trail-card strong {
+      font-size: 14px;
+    }
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      margin: 0;
+    }
+    @media (max-width: 1200px) {
+      .hero,
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+      .workflow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 16px, 1500px); padding-top: 12px; }
+      .workflow,
+      .metric-grid,
+      .status-grid { grid-template-columns: 1fr; }
+      .hero { padding: 16px; }
+      .panel { padding: 16px; }
+      .brand { flex-direction: column; }
+      .summary-ring { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="brand">
+        <div class="mark">OC</div>
+        <div>
+          <p class="eyebrow">Option Commander Agent</p>
+          <h1>Planner가 질문을 해석하고, 필요한 Agent만 호출해 Battle Plan으로 묶습니다.</h1>
+          <p>사용자의 질문을 받아 시장 국면, 옵션 전략, 검증, 성과분해 중 필요한 조합만 골라 연결하는 Commander 레이어입니다. Chat과 Dashboard가 동시에 움직이며, 실전에서는 검토 흐름을 빠르게 정리하는 오케스트레이터 역할을 합니다.</p>
+        </div>
+      </div>
+      <div class="hero-side">
+        <div class="summary-ring" id="plannerRing" style="--score:72;">
+          <div>
+            <strong id="plannerScore">72%</strong>
+            <span>planner confidence</span>
+          </div>
+        </div>
+        <div class="status-grid">
+          <div class="status-pill"><strong id="currentIntent">Strategy</strong><br/>intent</div>
+          <div class="status-pill"><strong id="selectedCount">3</strong><br/>selected agents</div>
+          <div class="status-pill"><strong id="latencyLabel">Instant</strong><br/>response mode</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workflow" aria-label="Commander flow">
+      <div class="workflow-card"><span>1. User Question</span><strong>질문을 받으면 intent를 해석합니다.</strong></div>
+      <div class="workflow-card"><span>2. Planner</span><strong>필요한 Agent와 순서를 선택합니다.</strong></div>
+      <div class="workflow-card"><span>3. Agent Call</span><strong>선택된 Agent 결과를 하나씩 수집합니다.</strong></div>
+      <div class="workflow-card"><span>4. Battle Plan</span><strong>최종 행동계획과 검토 포인트로 정리합니다.</strong></div>
+    </section>
+
+    <section class="workspace">
+      <section class="panel">
+        <div class="section-head">
+          <h2>Chat Console</h2>
+          <span id="turnHint">질문을 입력하면 Planner가 라우팅합니다.</span>
+        </div>
+        <div id="transcript" class="transcript" aria-live="polite"></div>
+        <div class="quick-prompts" id="quickPrompts" aria-label="quick prompts"></div>
+        <form id="composer" class="composer">
+          <textarea id="questionInput" placeholder="예: 지금 추천 전략은? / 이 전략을 검증까지 해줘 / 성과가 왜 이렇게 나왔지?"></textarea>
+          <div class="composer-actions">
+            <button class="primary-btn" type="submit">Commander 실행</button>
+            <button class="ghost-btn" id="resetBtn" type="button">초기화</button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="dashboard-grid">
+        <section class="panel">
+          <div class="section-head">
+            <h2>Commander Dashboard</h2>
+            <span id="updatedAt">Ready</span>
+          </div>
+          <div class="metric-grid">
+            <div class="metric-card">
+              <span>Planner Confidence</span>
+              <strong id="metricConfidence">72%</strong>
+              <em id="metricConfidenceNote">질문의 명확도와 rule match를 기준으로 계산합니다.</em>
+            </div>
+            <div class="metric-card">
+              <span>Agent Depth</span>
+              <strong id="metricDepth">3</strong>
+              <em id="metricDepthNote">선택된 Agent 수에 따라 호출 깊이를 보여줍니다.</em>
+            </div>
+            <div class="metric-card">
+              <span>Battle Readiness</span>
+              <strong id="metricReadiness">High</strong>
+              <em id="metricReadinessNote">실행 가능한 조합인지 즉시 표시합니다.</em>
+            </div>
+            <div class="metric-card">
+              <span>Last Intent</span>
+              <strong id="metricIntent">Strategy</strong>
+              <em id="metricIntentNote">마지막 질문의 핵심 의도를 요약합니다.</em>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel subpanel">
+          <div class="section-head">
+            <h3>Agent Routing</h3>
+            <span>Registry-driven</span>
+          </div>
+          <div id="agentList" class="agent-list"></div>
+        </section>
+
+        <section class="panel subpanel">
+          <div class="section-head">
+            <h3>Battle Plan</h3>
+            <span>Synced Output</span>
+          </div>
+          <ol id="battlePlan" class="battle-list"></ol>
+        </section>
+
+        <section class="panel subpanel">
+          <div class="section-head">
+            <h3>Decision Trail</h3>
+            <span>Planner reasoning</span>
+          </div>
+          <div id="decisionTrail" class="trail-card"></div>
+        </section>
+
+        <p class="footer-note">Option Commander Agent는 직접 매수·매도 결정을 내리지 않고, 어떤 Agent를 어떤 순서로 호출할지 조정하는 오케스트레이션 레이어입니다.</p>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="./commander.js"></script>
+</body>
+</html>

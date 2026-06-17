@@ -1,0 +1,68 @@
+{
+  "project": "Option Commander Agent",
+  "version": "v1",
+  "prompts": [
+    "지금 추천 전략은?",
+    "레짐과 플레이북을 같이 봐줘",
+    "이 전략을 검증까지 해줘",
+    "성과가 왜 그렇게 나왔는지 분해해줘"
+  ],
+  "agents": [
+    {
+      "id": "market-regime",
+      "name": "Market Regime Agent",
+      "alias": "Module 1",
+      "purpose": "시장 국면과 변동성을 먼저 해석",
+      "triggers": ["국면", "레짐", "시장", "변동성", "방향", "event risk", "event", "regime"],
+      "outputs": ["Current Regime", "Confidence Score", "Event Risk", "Market Interpretation", "Regime Reason"],
+      "sample": {
+        "regime": "Transition",
+        "confidence": 0.74,
+        "eventRisk": "high",
+        "note": "방향성과 변동성 변화가 함께 움직여 우선 해석이 필요합니다."
+      }
+    },
+    {
+      "id": "option-playbook",
+      "name": "Option Playbook Agent",
+      "alias": "Module 2",
+      "purpose": "국면에 맞는 옵션 전략군을 추천",
+      "triggers": ["전략", "추천", "playbook", "옵션", "hedge", "방어", "공격", "trade"],
+      "outputs": ["Top Recommended 9", "Avoid Now 6", "Strategy Score", "Risk Level", "Expected Return", "Playbook Mapping"],
+      "sample": {
+        "top": "Bull Call Spread",
+        "avoid": "Short Straddle",
+        "score": 92,
+        "risk": "Medium",
+        "return": "+12.4%"
+      }
+    },
+    {
+      "id": "validation",
+      "name": "Validation Agent",
+      "alias": "Module 3",
+      "purpose": "검증 기준과 백테스트 우위를 점검",
+      "triggers": ["검증", "validation", "review", "reject", "pass", "backtest", "리스크", "꼬리", "레드팀"],
+      "outputs": ["PASS", "REVIEW", "REJECT", "Validation Score", "Risk Warning"],
+      "sample": {
+        "label": "REVIEW",
+        "score": 68,
+        "warning": "방향성은 맞지만 이벤트 이후 변동성 급락 위험을 추가 확인해야 합니다."
+      }
+    },
+    {
+      "id": "attribution",
+      "name": "Attribution Agent",
+      "alias": "Module 4",
+      "purpose": "성과를 Allocation / Selection / Interaction으로 분해",
+      "triggers": ["성과", "분해", "attribution", "allocation", "selection", "interaction", "alpha", "beta", "pnl", "기여"],
+      "outputs": ["Allocation Effect", "Selection Effect", "Interaction Effect", "Alpha Source", "Beta Source", "Update Signal"],
+      "sample": {
+        "allocation": 2.4,
+        "selection": 3.1,
+        "interaction": -0.6,
+        "updateSignal": "reduce_leverage"
+      }
+    }
+  ]
+}

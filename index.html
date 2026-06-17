@@ -100,6 +100,21 @@
     .bar-fill.loss{background:linear-gradient(90deg,var(--accent),#ee8076)}
     .bar-fill.neutral{background:linear-gradient(90deg,var(--blue),#7ea2ff)}
     .contribution-foot{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)}
+    .ai-box{display:grid;gap:12px}
+    .ai-headline{font-size:16px;font-weight:900;line-height:1.45;color:var(--text)}
+    .ai-body{font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap}
+    .ai-focus-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .ai-focus-card{display:grid;gap:6px;padding:12px 13px;border:1px solid #d8dee4;border-radius:16px;background:#f8fafc}
+    .ai-focus-label{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#56616c}
+    .ai-focus-value{font-size:13px;line-height:1.55;color:var(--text);font-weight:700;min-height:2.45em}
+    .ai-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .ai-mini-card{display:grid;gap:5px;padding:10px 12px;border:1px solid #d8dee4;border-radius:14px;background:#fff}
+    .ai-mini-label{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#56616c}
+    .ai-mini-value{font-size:13px;line-height:1.55;color:var(--text);font-weight:700}
+    .ai-list{display:grid;gap:8px;padding-left:18px;margin:0;color:var(--text);font-size:13px;line-height:1.6}
+    .ai-list li{margin:0}
+    .ai-status{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;color:var(--muted)}
+    .ai-chip{padding:5px 10px;border-radius:999px;background:#eef2f5;border:1px solid #dde1e5;font-weight:800;color:#33404b}
     .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#fff}
     table{width:100%;border-collapse:collapse;min-width:980px}
     thead th{position:sticky;top:0;background:#f7f8f9;color:#4d5660;font-size:12px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:14px;border-bottom:1px solid var(--line)}
@@ -127,6 +142,7 @@
       .grid-controls{grid-template-columns:1fr}
       .grid-controls .span-2{grid-column:auto}
       .info-row{grid-template-columns:1fr}
+      .ai-focus-grid,.ai-mini-grid{grid-template-columns:1fr}
       .metric-value{font-size:24px}
       .title{font-size:28px}
     }
@@ -313,6 +329,48 @@
 
         <div class="panel section">
           <div class="section-title">
+            <h2>AI 해석</h2>
+            <span id="aiStatus">대기</span>
+          </div>
+          <div class="ai-box">
+            <div class="ai-headline" id="aiHeadline">LLM 요약을 생성하는 중입니다.</div>
+            <div class="ai-body" id="aiBody">전략과 기간이 평가되면 자연어 해석이 여기에 표시됩니다.</div>
+            <div class="ai-focus-grid">
+              <div class="ai-focus-card">
+                <div class="ai-focus-label">Allocation</div>
+                <div class="ai-focus-value" id="aiAllocation">레짐 타이밍과 위험 자본 배분 관점의 해석이 여기에 표시됩니다.</div>
+              </div>
+              <div class="ai-focus-card">
+                <div class="ai-focus-label">Selection</div>
+                <div class="ai-focus-value" id="aiSelection">48대 Playbook 구조와 행사가 선택 관점의 해석이 여기에 표시됩니다.</div>
+              </div>
+              <div class="ai-focus-card">
+                <div class="ai-focus-label">Interaction</div>
+                <div class="ai-focus-value" id="aiInteraction">배분과 선택의 시너지 관점의 해석이 여기에 표시됩니다.</div>
+              </div>
+            </div>
+            <ul class="ai-list" id="aiBullets">
+              <li>OpenAI 응답이 들어오면 여기에 핵심 포인트가 채워집니다.</li>
+            </ul>
+            <div class="ai-mini-grid">
+              <div class="ai-mini-card">
+                <div class="ai-mini-label">Risk</div>
+                <div class="ai-mini-value" id="aiRisk">리스크 포인트가 여기에 표시됩니다.</div>
+              </div>
+              <div class="ai-mini-card">
+                <div class="ai-mini-label">Next Step</div>
+                <div class="ai-mini-value" id="aiNextStep">다음 액션이 여기에 표시됩니다.</div>
+              </div>
+            </div>
+            <div class="ai-status">
+              <span id="aiMeta">OpenAI API 연결 대기</span>
+              <span class="ai-chip" id="aiModeChip">AI</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel section">
+          <div class="section-title">
             <h2>전략별 수익기여도</h2>
             <span id="contributionMeta">전체 전략 비교</span>
           </div>
@@ -336,7 +394,9 @@
       selectedSlug: '',
       selectedStrategy: null,
       selectedRows: [],
-      rawRows: []
+      rawRows: [],
+      aiTimer: null,
+      aiSeq: 0
     };
 
     const els = {
@@ -377,6 +437,17 @@
       riskText: document.getElementById('riskText'),
       contributionMeta: document.getElementById('contributionMeta'),
       contributionList: document.getElementById('contributionList'),
+      aiStatus: document.getElementById('aiStatus'),
+      aiHeadline: document.getElementById('aiHeadline'),
+      aiBody: document.getElementById('aiBody'),
+      aiAllocation: document.getElementById('aiAllocation'),
+      aiSelection: document.getElementById('aiSelection'),
+      aiInteraction: document.getElementById('aiInteraction'),
+      aiBullets: document.getElementById('aiBullets'),
+      aiRisk: document.getElementById('aiRisk'),
+      aiNextStep: document.getElementById('aiNextStep'),
+      aiMeta: document.getElementById('aiMeta'),
+      aiModeChip: document.getElementById('aiModeChip'),
       equityChart: document.getElementById('equityChart')
     };
 
@@ -593,6 +664,121 @@
           <div class="info-val">${escapeHtml(value)}</div>
         </div>
       `).join('');
+    }
+
+    function buildInsightPayload(strategy, metrics, breakdown, rows) {
+      const sampleRows = rows.slice(0, 6).map((row) => ({
+        entryDate: row.entryDate,
+        exitDate: row.exitDate,
+        pnl: row.pnl,
+        entryClose: row.entryClose,
+        exitClose: row.exitClose,
+        sigma: row.sigma,
+        strikeSummary: row.strikeSummary
+      }));
+      return {
+        strategy: {
+          slug: strategy?.slug || '',
+          title: strategy?.title || '',
+          construction: strategy?.construction || '',
+          outlook: strategy?.outlook || '',
+          riskReturn: strategy?.riskReturn || '',
+          archetype: strategy?.archetype || '',
+          categoryName: strategy?.categoryName || ''
+        },
+        period: {
+          start: els.startDate.value,
+          end: els.endDate.value,
+          tradeCount: metrics.total
+        },
+        metrics: {
+          totalPnl: metrics.totalPnl,
+          winRate: metrics.winRate,
+          avgPnl: metrics.avgPnl,
+          maxDrawdown: metrics.maxDrawdown,
+          profitFactor: Number.isFinite(metrics.profitFactor) ? metrics.profitFactor : null
+        },
+        attribution: {
+          allocationEffect: breakdown.allocationEffect,
+          allocationSignal: breakdown.allocationSignal,
+          selectionEffect: breakdown.selectionEffect,
+          selectionSignal: breakdown.selectionSignal,
+          interactionEffect: breakdown.interactionEffect,
+          interactionSignal: breakdown.interactionSignal,
+          familyPeers: breakdown.familyPeers
+        },
+        examples: {
+          bestTrade: breakdown.best ? {
+            entryDate: breakdown.best.entryDate,
+            exitDate: breakdown.best.exitDate,
+            pnl: breakdown.best.pnl,
+            strikeSummary: breakdown.best.strikeSummary
+          } : null,
+          worstTrade: breakdown.worst ? {
+            entryDate: breakdown.worst.entryDate,
+            exitDate: breakdown.worst.exitDate,
+            pnl: breakdown.worst.pnl,
+            strikeSummary: breakdown.worst.strikeSummary
+          } : null
+        },
+        sampleRows
+      };
+    }
+
+    async function requestAiInsight(rows, metrics, breakdown) {
+      const strategy = state.selectedStrategy || state.strategies[0] || null;
+      const seq = ++state.aiSeq;
+      els.aiStatus.textContent = '요약 생성중';
+      els.aiMeta.textContent = 'OpenAI 응답 대기';
+      els.aiModeChip.textContent = 'AI';
+      els.aiHeadline.textContent = 'LLM 요약을 생성하는 중입니다.';
+      els.aiBody.textContent = '조금만 기다려 주세요.';
+      els.aiAllocation.textContent = '레짐 타이밍과 위험 자본 배분 관점의 해석이 생성됩니다.';
+      els.aiSelection.textContent = '48대 Playbook 구조와 행사가 선택 관점의 해석이 생성됩니다.';
+      els.aiInteraction.textContent = '배분과 선택의 시너지 관점의 해석이 생성됩니다.';
+      els.aiBullets.innerHTML = '<li>전략·기간·성과를 바탕으로 코멘트를 생성합니다.</li>';
+      els.aiRisk.textContent = '리스크 요약이 생성됩니다.';
+      els.aiNextStep.textContent = '다음 액션이 생성됩니다.';
+
+      try {
+        const response = await fetch(`${API_ORIGIN}/api/insight`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildInsightPayload(strategy, metrics, breakdown, rows))
+        });
+        const data = await response.json();
+        if (seq !== state.aiSeq) return;
+        if (!response.ok) {
+          throw new Error(data.error || `AI 해석 실패: ${response.status}`);
+        }
+        els.aiStatus.textContent = data.mode === 'openai' ? '생성 완료' : '대체 해석';
+        els.aiMeta.textContent = data.mode === 'openai' ? 'OpenAI API 사용' : (data.note || 'OpenAI 미설정');
+        els.aiModeChip.textContent = data.mode === 'openai' ? 'LLM' : 'Fallback';
+        els.aiHeadline.textContent = data.headline || '해석 결과 없음';
+        els.aiBody.textContent = data.summary || data.note || 'AI 해석을 불러오지 못했습니다.';
+        els.aiAllocation.textContent = data.allocation || 'Allocation 해석 없음';
+        els.aiSelection.textContent = data.selection || 'Selection 해석 없음';
+        els.aiInteraction.textContent = data.interaction || 'Interaction 해석 없음';
+        const bullets = Array.isArray(data.bullets) ? data.bullets : [];
+        els.aiBullets.innerHTML = bullets.length
+          ? bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
+          : '<li>추가 코멘트 없음</li>';
+        els.aiRisk.textContent = Array.isArray(data.risk) && data.risk.length ? data.risk.join(' · ') : (data.risk || '리스크 없음');
+        els.aiNextStep.textContent = data.nextStep || '다음 액션 없음';
+      } catch (error) {
+        if (seq !== state.aiSeq) return;
+        els.aiStatus.textContent = '연결 실패';
+        els.aiMeta.textContent = error.message || 'AI 해석 실패';
+        els.aiModeChip.textContent = 'ERR';
+        els.aiHeadline.textContent = 'AI 해석을 불러오지 못했습니다.';
+        els.aiBody.textContent = 'OpenAI API 키가 없거나 서버 호출이 실패했습니다. 환경변수 설정 후 다시 시도해 주세요.';
+        els.aiAllocation.textContent = 'OPENAI_API_KEY 필요';
+        els.aiSelection.textContent = 'OPENAI_API_KEY 필요';
+        els.aiInteraction.textContent = 'OPENAI_API_KEY 필요';
+        els.aiBullets.innerHTML = '<li>OPENAI_API_KEY가 Vercel 환경 변수에 필요합니다.</li><li>키를 넣으면 전략 해석이 자동 생성됩니다.</li>';
+        els.aiRisk.textContent = 'OPENAI_API_KEY 필요';
+        els.aiNextStep.textContent = 'OPENAI_API_KEY 설정 후 재시도';
+      }
     }
 
     function escapeHtml(value) {
@@ -908,6 +1094,14 @@
       renderTable(filtered);
       renderChart(metrics.curve);
       renderStrategyContributions(els.startDate.value, els.endDate.value);
+      clearTimeout(state.aiTimer);
+      state.aiTimer = setTimeout(() => {
+        requestAiInsight(
+          filtered,
+          metrics,
+          computeRevenueBreakdown(filtered, metrics, state.selectedStrategy || state.strategies[0] || null)
+        );
+      }, 350);
       els.currentStrategy.textContent = state.selectedStrategy?.title || state.selectedSlug || '-';
       els.statusBox.textContent = filtered.length
         ? `${state.selectedStrategy?.title || state.selectedSlug} 전략을 ${fmtDate(els.startDate.value)} ~ ${fmtDate(els.endDate.value)} 범위로 평가했습니다.`

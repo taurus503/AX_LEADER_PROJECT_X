@@ -1,7 +1,7 @@
 import { getMarketSnapshot, type MarketSnapshot, type RegimeKey } from "./market";
 
 export const PLAYBOOK_BASE_PATH =
-  "/Option_Playbook_Advisor_backup_2026-06-12_v5.6/Option_Playbook_Advisor_ver5.6";
+  "https://bitter-morning-77fd.jager001.workers.dev";
 
 export type MarketBias = "bull" | "bear" | "neutral";
 export type VolRegime = "high" | "mid" | "low";
@@ -748,4 +748,3 @@ function buildCommitteeBrief(
       : "Avoid Now는 아직 비어 있습니다.",
   ].join(" ");
 }
-

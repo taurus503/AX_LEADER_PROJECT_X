@@ -1,13 +1,31 @@
 import vinext from "vinext";
 import { defineConfig } from "vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
-import hostingConfig from "./.openai/hosting.json";
+import { existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { sites } from "./build/sites-vite-plugin";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
 
-const { d1, r2 } = hostingConfig;
+type HostingConfig = {
+  d1?: string;
+  r2?: string;
+};
+
+function loadHostingConfig(): HostingConfig {
+  const hostingConfigPath = fileURLToPath(
+    new URL("./.openai/hosting.json", import.meta.url),
+  );
+
+  if (!existsSync(hostingConfigPath)) {
+    return {};
+  }
+
+  return JSON.parse(readFileSync(hostingConfigPath, "utf8")) as HostingConfig;
+}
+
+const { d1, r2 } = loadHostingConfig();
 
 const localBindingConfig = {
   main: "./worker/index.ts",

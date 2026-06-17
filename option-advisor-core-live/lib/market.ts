@@ -40,6 +40,8 @@ interface PricePoint {
   close: number;
 }
 
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
 const FALLBACK_SNAPSHOT = {
   source: "Sample fallback snapshot",
   actualDate: "2026-06-10",
@@ -62,11 +64,14 @@ const FALLBACK_SNAPSHOT = {
 
 function toIsoDate(value: number | string | Date): string {
   const date = value instanceof Date ? value : new Date(value);
-  return date.toISOString().slice(0, 10);
+  return new Date(date.getTime() + KST_OFFSET_MS).toISOString().slice(0, 10);
 }
 
 function normalizeDateInput(input?: string | null): string | null {
   if (!input) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    return input;
+  }
   const date = new Date(input);
   if (Number.isNaN(date.getTime())) return null;
   return toIsoDate(date);

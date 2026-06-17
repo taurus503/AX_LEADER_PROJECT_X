@@ -1,49 +1,58 @@
 # Option Commander Agent v1
 
-Planner-based Commander Agent demo.
+Operational minimum version of the Option Commander Agent.
 
-## Goal
+## What it does
 
-Accept a user question, choose the required tools, run a reflection loop when the strategy looks risky, and return a revised answer.
-
-## Included Tools
-
-1. Market Regime Agent
-2. Option Playbook Agent
-3. Reflection Agent
-4. Memory Agent
-5. Validation Agent
-6. Attribution Agent
-
-## Tool Registry
-
-`tool-registry.json` is the source of truth for the Commander routing flow.
-The Reflection Agent reviews strategy recommendations and, when risk is high,
-re-calls the Validation Agent before the final answer is produced.
-The Memory Agent stores `regime`, `strategy`, and `result` as JSON so the next
-recommendation can reference prior outcomes.
+- Chat UI sends every question to `POST /api/commander`
+- Server runs:
+  - Planner
+  - Regime Agent
+  - Playbook Agent
+  - Validation Agent
+  - Reflection Agent
+  - Memory Agent
+  - Final answer synthesis
+- If `OPENAI_API_KEY` or `LLM_API_KEY` exists, the final answer uses an LLM
+- If the LLM call fails, the server falls back to a mock answer
+- The UI shows an execution trace with:
+  - question
+  - intent
+  - selected agents
+  - tool results
+  - validation label
+  - memory usage
+  - retry count
+  - fallback usage
+  - failed tools
+  - final answer
 
 ## Files
 
 - `index.html`
 - `commander.js`
-- `planner.js`
+- `lib/commander-core.js`
+- `api/commander.js`
 - `tool-registry.json`
-- `README.md`
+- `package.json`
+- `.env.example`
 
-## Flow
+## Environment
 
-1. User question
-2. Planner chooses the tool sequence
-3. Tools are called in order
-4. Reflection Agent self-checks the strategy result
-5. Validation Agent is re-called when needed
-6. A revised answer and battle plan are generated
+Copy `.env.example` to `.env` locally and set:
 
-## Run
+- `OPENAI_API_KEY`
+- `LLM_API_KEY`
+- `OPENAI_MODEL`
 
-This is a static demo. Open the folder locally or deploy it to Vercel.
+Do not commit `.env`.
 
-## Design
+## Notes
 
-Dark navy, chat + dashboard, and premium glassmorphism styling.
+- Memory is stored in browser localStorage for now.
+- Previous loss records make Reflection more conservative.
+- Recommendations are review candidates, not investment instructions.
+
+## Deploy
+
+This folder is deployed as a Vercel project with a static front end plus serverless API route.

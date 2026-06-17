@@ -1,10 +1,9 @@
-import { DEFAULT_TOOL_REGISTRY, loadMemoryRecords, loadToolRegistry, planQuestion, saveMemoryRecord } from "./planner.js";
-
 const els = {
   transcript: document.getElementById("transcript"),
   agentList: document.getElementById("agentList"),
   toolCallList: document.getElementById("toolCallList"),
   reflectionLoop: document.getElementById("reflectionLoop"),
+  executionTrace: document.getElementById("executionTrace"),
   memoryForm: document.getElementById("memoryForm"),
   memoryRegime: document.getElementById("memoryRegime"),
   memoryStrategy: document.getElementById("memoryStrategy"),
@@ -37,10 +36,13 @@ const els = {
   registryMeta: document.getElementById("registryMeta")
 };
 
+const MEMORY_KEY = "option-commander-memory-v1";
+
 const state = {
-  registry: DEFAULT_TOOL_REGISTRY,
+  registry: null,
   memory: loadMemoryRecords(),
-  history: []
+  history: [],
+  lastResponse: null
 };
 
 function fmtTime(value) {
@@ -57,6 +59,56 @@ function escapeHtml(value) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+function loadMemoryRecords() {
+  try {
+    const raw = window.localStorage.getItem(MEMORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveMemoryRecord(record) {
+  const next = [
+    {
+      regime: String(record?.regime || "").trim(),
+      strategy: String(record?.strategy || "").trim(),
+      result: String(record?.result || "").trim(),
+      validation_label: String(record?.validation_label || "").trim(),
+      timestamp: record?.timestamp || new Date().toISOString()
+    },
+    ...loadMemoryRecords()
+  ]
+    .filter((item) => item.regime || item.strategy || item.result)
+    .slice(0, 20);
+
+  window.localStorage.setItem(MEMORY_KEY, JSON.stringify(next));
+  return next;
+}
+
+async function loadRegistry() {
+  try {
+    const response = await fetch("./tool-registry.json", { cache: "no-store" });
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch {
+    // fallback below
+  }
+  return {
+    tools: [
+      { id: "regime-agent", name: "Regime Agent", label: "Module 1", purpose: "Analyze market regime first", outputs: ["Current Regime", "Confidence Score", "Event Risk"] },
+      { id: "playbook-agent", name: "Playbook Agent", label: "Module 2", purpose: "Recommend option playbooks by regime", outputs: ["Top Recommended 9", "Avoid Now 6", "Strategy Score"] },
+      { id: "validation-agent", name: "Validation Agent", label: "Module 3", purpose: "Red-team the candidate and label PASS/REVIEW/REJECT", outputs: ["PASS", "REVIEW", "REJECT"] },
+      { id: "reflection-agent", name: "Reflection Agent", label: "Reflection", purpose: "Self-review strategy result and trigger recheck when needed", outputs: ["Risk Review", "Validation Trigger", "Revised Answer"] },
+      { id: "memory-agent", name: "Memory Agent", label: "Memory", purpose: "Persist regime / strategy / result JSON", outputs: ["regime", "strategy", "result"] },
+      { id: "attribution-agent", name: "Attribution Agent", label: "Module 4", purpose: "Decompose performance into allocation / selection / interaction", outputs: ["Allocation Effect", "Selection Effect", "Interaction Effect"] }
+    ],
+    prompts: ["이번 월물 추천", "지금 추천 전략은?"]
+  };
 }
 
 function renderQuickPrompts(prompts) {
@@ -77,7 +129,7 @@ function renderTranscript() {
     els.transcript.innerHTML = `
       <div class="message">
         <div class="label">Commander</div>
-        <p>질문을 입력하면 Commander가 Planner를 통해 필요한 Agent를 선택합니다.</p>
+        <p>질문을 입력하면 Commander API가 Planner와 Agent들을 호출합니다.</p>
       </div>
     `;
     return;
@@ -94,7 +146,7 @@ function renderTranscript() {
         `;
       }
 
-      const chips = [item.meta?.intent, item.meta?.path, item.meta?.validation, item.meta?.memory].filter(Boolean);
+      const chips = [item.meta?.intent, item.meta?.validation, item.meta?.memory_used ? "memory used" : null].filter(Boolean);
       return `
         <div class="message">
           <div class="label">Commander</div>
@@ -109,23 +161,23 @@ function renderTranscript() {
   els.transcript.scrollTop = els.transcript.scrollHeight;
 }
 
-function renderRegistry(plan) {
+function renderRegistry() {
   els.registryMeta.textContent = `${state.registry.tools.length} tools`;
   els.agentList.innerHTML = state.registry.tools
     .map((tool) => {
-      const isActive = plan.selectedToolIds.includes(tool.id);
+      const isActive = state.lastResponse?.selected_agents?.includes(tool.name);
       const sampleText =
         tool.id === "regime-agent"
-          ? "Transition / confidence 74%"
+          ? "Current Regime / Confidence"
           : tool.id === "playbook-agent"
-            ? "Bull Call Spread / Iron Condor"
+            ? "Top Recommended / Avoid Now"
             : tool.id === "validation-agent"
               ? "PASS / REVIEW / REJECT"
               : tool.id === "reflection-agent"
-                ? "Risk review / recheck"
+                ? "Recheck / conservative"
                 : tool.id === "memory-agent"
-                  ? "Memory JSON store / recall"
-                  : "allocation / selection / interaction";
+                  ? "JSON memory"
+                  : "Allocation / Selection / Interaction";
 
       return `
         <article class="agent-card ${isActive ? "active" : ""}">
@@ -149,35 +201,38 @@ function renderRegistry(plan) {
     .join("");
 }
 
-function renderToolCalls(plan) {
-  els.toolCallList.innerHTML = plan.toolCalls
+function renderToolCalls(response) {
+  const toolResults = response?.tool_results || [];
+  els.toolCallList.innerHTML = toolResults
     .map((call) => {
-      const outputLine = call.id === "regime-agent"
-        ? `Regime: ${call.output.currentRegime}, Event Risk: ${call.output.eventRisk}, Confidence: ${Math.round(call.output.confidenceScore * 100)}%`
-        : call.id === "playbook-agent"
-          ? `Top: ${call.output.topRecommended[0]}, Avoid: ${call.output.avoidNow[0]}, Score: ${call.output.strategyScore}`
-          : call.id === "memory-agent"
-            ? `Stored: ${call.output.storedCount}, Recent: ${call.output.recent.length}`
-            : String(call.id).includes("validation-agent")
+      const summary =
+        call.agent === "Regime Agent"
+          ? `Regime: ${call.output.currentRegime}, Event Risk: ${call.output.eventRisk}, Confidence: ${Math.round(call.output.confidenceScore * 100)}%`
+          : call.agent === "Playbook Agent"
+            ? `Top: ${call.output.topRecommended?.[0] || "-"}, Avoid: ${call.output.avoidNow?.[0] || "-"}, Score: ${call.output.strategyScore}`
+            : call.agent === "Validation Agent"
               ? `Label: ${call.output.label}, Score: ${call.output.validationScore}`
-              : call.id === "reflection-agent"
+              : call.agent === "Reflection Agent"
                 ? `Self-review: ${call.output.selfReview}`
-                : `Alpha: ${call.output.alphaSource}, Update: ${call.output.updateSignal}`;
+                : call.agent === "Memory Agent"
+                  ? `Stored memory: ${call.output.regime || "-"} / ${call.output.strategy || "-"} / ${call.output.result || "-"}`
+                  : `Update signal: ${call.output.updateSignal || "-"}`;
 
       return `
         <article class="trail-card">
-          <strong>${escapeHtml(call.name)}</strong>
-          <p>${escapeHtml(outputLine)}</p>
+          <strong>${escapeHtml(call.agent)}</strong>
+          <p>${escapeHtml(summary)}</p>
+          <p style="margin-top:6px;color:var(--muted);font-size:12px;">retry ${call.retry_count || 0} · ${call.fallback_used ? "fallback used" : "normal"}</p>
         </article>
       `;
     })
     .join("");
 }
 
-function renderReflection(plan) {
-  const reflection = plan.reflection;
-  const validation = plan.validation;
-  const memoryCue = plan.memoryCue;
+function renderReflection(response) {
+  const reflection = response?.tool_results?.find((item) => item.agent === "Reflection Agent")?.output;
+  const validation = response?.tool_results?.find((item) => item.agent === "Validation Agent")?.output;
+  const memory = response?.memory_record;
 
   els.reflectionLoop.innerHTML = `
     <div class="trail-card">
@@ -186,24 +241,53 @@ function renderReflection(plan) {
     </div>
     <div class="trail-card">
       <strong>Validation Recheck</strong>
-      <p>${escapeHtml(validation ? `${validation.label} / ${validation.validationScore} / ${validation.riskWarning}` : "No recheck needed.")}</p>
+      <p>${escapeHtml(validation ? `${validation.label} / ${validation.validationScore} / ${validation.riskWarning}` : "No validation result available.")}</p>
     </div>
     <div class="trail-card">
       <strong>Memory Cue</strong>
-      <p>${escapeHtml(memoryCue?.note || "No matching memory found.")}</p>
+      <p>${escapeHtml(memory ? `${memory.regime} / ${memory.strategy} / ${memory.validation_label}` : "No memory record saved yet.")}</p>
     </div>
     <div class="trail-card">
       <strong>Revised Answer</strong>
-      <p>${escapeHtml(plan.finalAnswer)}</p>
+      <p>${escapeHtml(response?.final_answer || "No final answer available.")}</p>
     </div>
   `;
 }
 
-function renderMemory() {
+function renderExecutionTrace(response) {
+  const trace = response?.trace || response || {};
+  const cards = [
+    ["question", trace.question],
+    ["intent", trace.intent],
+    ["selected_agents", Array.isArray(trace.selected_agents) ? trace.selected_agents.join(" → ") : ""],
+    ["tool_results", JSON.stringify((trace.tool_results || []).map((item) => ({
+      agent: item.agent,
+      retry_count: item.retry_count,
+      fallback_used: item.fallback_used
+    })), null, 2)],
+    ["validation_label", trace.validation_label],
+    ["memory_used", String(Boolean(trace.memory_used))],
+    ["retry_count", String(trace.retry_count ?? 0)],
+    ["fallback_used", String(Boolean(trace.fallback_used))],
+    ["failed_tools", Array.isArray(trace.failed_tools) ? trace.failed_tools.join(", ") : ""],
+    ["final_answer", trace.final_answer]
+  ];
+
+  els.executionTrace.innerHTML = cards
+    .map(([label, value]) => `
+      <article class="trail-card">
+        <strong>${escapeHtml(label)}</strong>
+        <p>${escapeHtml(value || "-")}</p>
+      </article>
+    `)
+    .join("");
+}
+
+function renderMemoryList() {
   els.memoryCount.textContent = `${state.memory.length} saved`;
   els.memoryPreview.textContent = state.memory.length
     ? JSON.stringify(state.memory[0], null, 2)
-    : JSON.stringify({ regime: "Momentum", strategy: "Iron Condor", result: "loss" }, null, 2);
+    : JSON.stringify({ regime: "Momentum", strategy: "Iron Condor", result: "REVIEW" }, null, 2);
 
   els.memoryList.innerHTML = state.memory.length
     ? state.memory.slice(0, 6).map((entry) => `
@@ -220,95 +304,179 @@ function renderMemory() {
       `;
 }
 
-function renderBattlePlan(plan) {
-  els.battlePlan.innerHTML = plan.battlePlan
+function renderBattlePlan(response) {
+  const battlePlan = response?.battle_plan || [];
+  els.battlePlan.innerHTML = battlePlan
     .map((step) => `
       <li>
-        <strong>${escapeHtml(step.title)}</strong>
-        <p>${escapeHtml(step.text)}</p>
+        <strong>${escapeHtml(step)}</strong>
+        <p>Commander flow checkpoint</p>
       </li>
     `)
     .join("");
 }
 
-function renderTrail(plan) {
+function renderDecisionTrail(response) {
+  const reason = Array.isArray(response?.reason) ? response.reason.join(" ") : "";
+  const executionPlan = Array.isArray(response?.execution_plan) ? response.execution_plan : [];
   els.decisionTrail.innerHTML = `
-    <strong>${escapeHtml(plan.summary)}</strong>
-    <p>${escapeHtml(plan.reasoning.join(" "))}</p>
+    <strong>${escapeHtml(response?.final_answer || "Planner standby")}</strong>
+    <p>${escapeHtml(reason)}</p>
     <p style="margin-top:10px;color:var(--muted);font-size:12px;white-space:pre-wrap;">${escapeHtml(JSON.stringify({
-      intent: plan.intent,
-      confidence: plan.confidence,
-      selected_agents: plan.selected_agents,
-      fallback_plan: plan.fallback_plan
+      intent: response?.intent,
+      confidence: response?.confidence,
+      selected_agents: response?.selected_agents,
+      fallback_plan: response?.fallback_plan,
+      execution_plan: executionPlan.map((item) => ({ agent: item.agent, purpose: item.purpose }))
     }, null, 2))}</p>
-    <div class="tag-row" style="margin-top:8px;">
-      ${plan.selectedTools.map((tool) => `<span class="tag">${escapeHtml(tool.name)}</span>`).join("")}
-    </div>
   `;
 }
 
-function pushConversation(userText, plan) {
-  const path = plan.selectedTools.map((tool) => tool.name).join(" → ");
-  const validationLabel = plan.validation?.label || "PASS";
-  const memoryNote = plan.memoryCue?.note || "No memory cue";
+function renderMetrics(response) {
+  const confidencePct = Math.round((response?.confidence || 0.72) * 100);
+  const selectedAgents = response?.selected_agents || [];
+  els.plannerRing.style.setProperty("--score", confidencePct);
+  els.plannerScore.textContent = `${confidencePct}%`;
+  els.selectedCount.textContent = String(selectedAgents.length);
+  els.currentIntent.textContent = response?.intent || "Strategy";
+  els.metricConfidence.textContent = `${confidencePct}%`;
+  els.metricConfidenceNote.textContent = response?.reason?.[0] || "Planner confidence based on routing clarity.";
+  els.metricDepth.textContent = String(selectedAgents.length);
+  els.metricDepthNote.textContent = `${selectedAgents.length} tools are connected.`;
+  els.metricReadiness.textContent = response?.validation_label || "REVIEW";
+  els.metricReadinessNote.textContent = response?.core_risk || "Validation output not available.";
+  els.metricIntent.textContent = response?.intent || "Strategy";
+  els.metricIntentNote.textContent = response?.recommended_strategy || response?.final_answer || "Ready";
+  els.latencyLabel.textContent = response?.fallback_used ? "Fallback" : "API";
+  els.updatedAt.textContent = response?.tool_results?.length ? fmtTime(new Date().toISOString()) : "Ready";
+  els.turnHint.textContent = response?.memory_used ? "Memory agent referenced prior JSON." : "Commander API is driving the flow.";
+}
 
+function pushConversation(userText, response) {
   state.history.push(
     { role: "user", text: userText },
     {
       role: "assistant",
-      text: plan.finalAnswer,
+      text: response.final_answer,
       meta: {
-        summary: plan.summary,
-        intent: plan.intent,
-        path,
-        validation: `${validationLabel} / ${plan.validation?.validationScore ?? "-"}`,
-        memory: memoryNote
+        summary: response.reason?.join(" ") || "",
+        intent: response.intent,
+        validation: response.validation_label,
+        memory_used: response.memory_used
       }
     }
   );
 }
 
-function renderMetrics(plan) {
-  const confidencePct = Math.round(plan.confidence * 100);
-  els.plannerRing.style.setProperty("--score", confidencePct);
-  els.plannerScore.textContent = `${confidencePct}%`;
-  els.selectedCount.textContent = String(plan.selectedTools.length);
-  els.currentIntent.textContent = plan.intent;
-  els.metricConfidence.textContent = `${confidencePct}%`;
-  els.metricConfidenceNote.textContent = plan.reasoning[0] || "Planner confidence based on routing clarity.";
-  els.metricDepth.textContent = String(plan.selectedTools.length);
-  els.metricDepthNote.textContent = `${plan.selectedTools.length} tools are connected.`;
-  els.metricReadiness.textContent = plan.selectedTools.length >= 3 ? "High" : "Medium";
-  els.metricReadinessNote.textContent = plan.selectedTools.length >= 3 ? "Multi-step review is active." : "Light routing is enough for this request.";
-  els.metricIntent.textContent = plan.intent;
-  els.metricIntentNote.textContent = plan.summary;
-  els.latencyLabel.textContent = plan.selectedTools.length >= 3 ? "Planner+" : "Instant";
-  els.updatedAt.textContent = fmtTime(plan.updatedAt);
-  els.turnHint.textContent = `${plan.selectedTools.length} tools selected.`;
+function mockFallbackResponse(question) {
+  const isStrategy = /추천|전략|month|monthly|월물/i.test(question);
+  const regime = isStrategy ? "Transition" : "Bull/Calm";
+  const strategy = isStrategy ? "Iron Condor" : "Bull Call Spread";
+  const validationLabel = isStrategy ? "REVIEW" : "PASS";
+  const memoryRecord = {
+    regime,
+    strategy,
+    result: validationLabel,
+    validation_label: validationLabel,
+    timestamp: new Date().toISOString()
+  };
+
+  return {
+    question,
+    intent: isStrategy ? "Strategy" : "Market Regime",
+    confidence: 0.68,
+    selected_agents: ["Regime Agent", "Playbook Agent", "Validation Agent", "Reflection Agent", "Memory Agent"],
+    reason: ["Fallback mode was used because the API was not reachable."],
+    execution_plan: [],
+    tool_results: [
+      { agent: "Regime Agent", output: { currentRegime: regime, eventRisk: "high", confidenceScore: 0.74 }, retry_count: 0, fallback_used: true },
+      { agent: "Playbook Agent", output: { topRecommended: [strategy], avoidNow: ["Short Straddle"], strategyScore: 84 }, retry_count: 0, fallback_used: true },
+      { agent: "Validation Agent", output: { label: validationLabel, validationScore: 69, riskWarning: "Fallback validation" }, retry_count: 0, fallback_used: true },
+      { agent: "Reflection Agent", output: { selfReview: "Fallback reflection", shouldRevalidate: true }, retry_count: 0, fallback_used: true },
+      { agent: "Memory Agent", output: memoryRecord, retry_count: 0, fallback_used: true }
+    ],
+    validation_label: validationLabel,
+    current_regime: regime,
+    recommended_strategy: strategy,
+    core_risk: "Fallback mode uses a conservative REVIEW stance.",
+    memory_used: true,
+    memory_record: memoryRecord,
+    retry_count: 0,
+    fallback_used: true,
+    failed_tools: ["commander-api"],
+    final_answer: `현재 시장 국면은 ${regime}입니다. 추천 전략 검토 대상은 ${strategy}이며, 검증 결과는 ${validationLabel}입니다. 핵심 리스크는 fallback mode에서 생성된 보수적 경고입니다. Memory 참고 여부: 참고함. 다음 검토 행동은 추가 검증입니다. 투자판단을 대신하지 않으며 검토 후보로만 보아야 합니다.`,
+    battle_plan: ["User Question", "Planner", "Regime Agent", "Playbook Agent", "Validation Agent", "Reflection Agent", "Memory Agent", "Final Answer"],
+    trace: {
+      question,
+      intent: isStrategy ? "Strategy" : "Market Regime",
+      selected_agents: ["Regime Agent", "Playbook Agent", "Validation Agent", "Reflection Agent", "Memory Agent"],
+      tool_results: [],
+      validation_label: validationLabel,
+      memory_used: true,
+      retry_count: 0,
+      fallback_used: true,
+      failed_tools: ["commander-api"],
+      final_answer: `현재 시장 국면은 ${regime}입니다. 추천 전략 검토 대상은 ${strategy}이며, 검증 결과는 ${validationLabel}입니다. 핵심 리스크는 fallback mode에서 생성된 보수적 경고입니다. Memory 참고 여부: 참고함. 다음 검토 행동은 추가 검증입니다. 투자판단을 대신하지 않으며 검토 후보로만 보아야 합니다.`
+    }
+  };
 }
 
-function runPlan() {
+async function callCommander(question) {
+  const response = await fetch("./api/commander", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      question,
+      memory_records: state.memory
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`API failed with ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function runPlan() {
   const question = els.questionInput.value.trim();
   if (!question) return;
 
-  const plan = planQuestion(question, state.registry, state.memory);
-  pushConversation(question, plan);
+  let response;
+  try {
+    response = await callCommander(question);
+  } catch {
+    response = mockFallbackResponse(question);
+  }
+
+  state.lastResponse = response;
+  pushConversation(question, response);
+
+  if (response.memory_record) {
+    state.memory = saveMemoryRecord(response.memory_record);
+  }
+
   renderTranscript();
-  renderMetrics(plan);
-  renderRegistry(plan);
-  renderToolCalls(plan);
-  renderReflection(plan);
-  renderBattlePlan(plan);
-  renderTrail(plan);
+  renderRegistry();
+  renderToolCalls(response);
+  renderReflection(response);
+  renderExecutionTrace(response);
+  renderMemoryList();
+  renderBattlePlan(response);
+  renderDecisionTrail(response);
+  renderMetrics(response);
 }
 
 async function bootstrap() {
-  state.registry = await loadToolRegistry();
-  state.memory = loadMemoryRecords();
-  renderQuickPrompts(state.registry.prompts || DEFAULT_TOOL_REGISTRY.prompts);
+  state.registry = await loadRegistry();
+  renderQuickPrompts(state.registry.prompts || []);
   els.questionInput.value = state.registry.prompts?.[0] || "이번 월물 추천";
-  runPlan();
-  renderMemory();
+  renderMemoryList();
+  renderTranscript();
+  renderRegistry();
+  renderDecisionTrail({});
 }
 
 els.composer.addEventListener("submit", (event) => {
@@ -319,15 +487,14 @@ els.composer.addEventListener("submit", (event) => {
 els.resetBtn.addEventListener("click", () => {
   state.history = [];
   els.questionInput.value = "";
+  state.lastResponse = null;
   renderTranscript();
-  els.agentList.innerHTML = "";
-  els.toolCallList.innerHTML = "";
-  els.reflectionLoop.innerHTML = "";
-  els.battlePlan.innerHTML = "";
-  els.decisionTrail.innerHTML = `
-    <strong>Planner standby</strong>
-    <p>Type a question and the Planner will choose the next tool call.</p>
-  `;
+  renderRegistry();
+  renderToolCalls({});
+  renderReflection({});
+  renderExecutionTrace({});
+  renderBattlePlan({});
+  renderDecisionTrail({});
 });
 
 els.memoryForm.addEventListener("submit", (event) => {
@@ -335,21 +502,16 @@ els.memoryForm.addEventListener("submit", (event) => {
   const nextMemory = saveMemoryRecord({
     regime: els.memoryRegime.value,
     strategy: els.memoryStrategy.value,
-    result: els.memoryResult.value
+    result: els.memoryResult.value,
+    validation_label: els.memoryResult.value
   });
   state.memory = nextMemory;
-  renderMemory();
-  if (els.questionInput.value.trim()) {
-    runPlan();
-  }
+  renderMemoryList();
 });
 
 els.memoryRefreshBtn.addEventListener("click", () => {
   state.memory = loadMemoryRecords();
-  renderMemory();
-  if (els.questionInput.value.trim()) {
-    runPlan();
-  }
+  renderMemoryList();
 });
 
 bootstrap();

@@ -1,0 +1,69 @@
+{
+  "agentName": "KOSPI200 Option Warfare Intelligence Agent",
+  "asOf": "2026-06-17",
+  "hero": {
+    "currentRegime": "Transition",
+    "confidenceScore": 0.73,
+    "eventRisk": "High",
+    "marketOutlook": "Narrow leadership with elevated event sensitivity",
+    "lastUpdate": "2026-06-17 09:20 KST"
+  },
+  "module1": {
+    "regime": "Transition",
+    "confidence": 0.73,
+    "eventFilter": "High",
+    "interpretation": "방향성보다 변동성 변화와 이벤트 민감도를 우선 보는 구간입니다. 추세 추종보다 방어와 탄력 조합이 우위입니다.",
+    "defensive": "Protective Collar, Put Spread Hedge",
+    "momentum": "Bull Call Spread, Call Ratio Spread",
+    "carry": "Covered Call, Calendar Spread",
+    "balanced": "Balanced Diagonal, Iron Condor"
+  },
+  "module2": {
+    "recommendedStrategies": [
+      { "name": "Bull Call Spread", "strategyScore": 91, "riskLevel": "Medium", "expectedReturn": "Moderate upside with capped risk", "playbook": "Directional upside with defined risk" },
+      { "name": "Put Spread Hedge", "strategyScore": 89, "riskLevel": "Low", "expectedReturn": "Defensive overlay", "playbook": "Hedge first, keep cost controlled" },
+      { "name": "Covered Call", "strategyScore": 87, "riskLevel": "Low", "expectedReturn": "Premium carry", "playbook": "Range-bound cashflow profile" },
+      { "name": "Calendar Spread", "strategyScore": 85, "riskLevel": "Medium", "expectedReturn": "Volatility decay capture", "playbook": "Event-aware theta harvesting" },
+      { "name": "Protective Collar", "strategyScore": 84, "riskLevel": "Low", "expectedReturn": "Capital preservation", "playbook": "Downside guard with upside cap" },
+      { "name": "Index Futures Hedge", "strategyScore": 82, "riskLevel": "Low", "expectedReturn": "Portfolio protection", "playbook": "Fast beta dampener" },
+      { "name": "Long Gamma Scalping", "strategyScore": 79, "riskLevel": "High", "expectedReturn": "Asymmetric volatility capture", "playbook": "Only when realized vol expands" },
+      { "name": "Call Ratio Spread", "strategyScore": 78, "riskLevel": "Medium", "expectedReturn": "Lower-cost upside participation", "playbook": "Upside with structured leverage" },
+      { "name": "Low-Delta Put Buy", "strategyScore": 76, "riskLevel": "Medium", "expectedReturn": "Tail hedge value", "playbook": "Insurance-style overlay" }
+    ],
+    "avoidStrategies": [
+      { "name": "Naked Short Put", "rejectReason": "Event risk is too elevated for uncapped downside", "riskLevel": "High", "playbook": "Avoid in transition regime" },
+      { "name": "Naked Short Call", "rejectReason": "Upside surprise can break the thesis quickly", "riskLevel": "High", "playbook": "Too exposed to gap risk" },
+      { "name": "Short Straddle", "rejectReason": "Volatility regime is unstable", "riskLevel": "Very High", "playbook": "Premium is not enough" },
+      { "name": "Leveraged Trend Chase", "rejectReason": "Trend direction is not clean enough", "riskLevel": "High", "playbook": "Momentum signal is not durable" },
+      { "name": "Concentrated Sector Beta", "rejectReason": "Breadth is narrow", "riskLevel": "High", "playbook": "Sector crowding remains risky" },
+      { "name": "Aggressive Overwrite", "rejectReason": "Carry does not compensate for regime drift", "riskLevel": "Medium / High", "playbook": "Wait for stability" }
+    ]
+  },
+  "module3": {
+    "status": "REVIEW",
+    "validationScore": 78,
+    "riskWarning": "TEST_3 기준으로는 구조는 적정하나 이벤트 리스크와 방향성 분산이 남아 있습니다.",
+    "validationComment": "PASS 후보가 많지만 Transition 국면에서는 일부 전략을 REVIEW로 묶는 것이 안전합니다."
+  },
+  "module4": {
+    "allocationEffect": 0.42,
+    "selectionEffect": 0.31,
+    "interactionEffect": 0.08,
+    "alphaContribution": 0.51,
+    "betaContribution": 0.19,
+    "updateSignal": "Rebalance toward defensive carry with optional upside skew"
+  },
+  "committee": {
+    "recommendation": "Defensive carry + selective upside structure",
+    "keyRisk": "Event-driven gap risk and weak breadth",
+    "backtestSummary": "CAGR 14.8% / Sharpe 1.12 / Max Drawdown -8.4% / Win Rate 57%",
+    "comment": "전반적으로 Transition 구간의 전형적인 전술 조합입니다. 확신이 높을 때만 방향성 비중을 확대하고, 나머지는 방어형 중심으로 유지하는 편이 좋습니다."
+  },
+  "battlePlan": {
+    "recommendedAction": "Keep core hedged, deploy upside only with defined risk",
+    "expectedOutcome": "Capture premium while limiting drawdown sensitivity",
+    "worstCase": "Event gap forces defensive unwind",
+    "capitalAllocation": "60% defensive / 30% carry / 10% tactical upside",
+    "riskBudget": "Medium"
+  }
+}

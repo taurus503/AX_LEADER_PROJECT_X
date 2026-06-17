@@ -15,9 +15,9 @@ It validates strategy candidates from Codex1 against the market view from Codex2
 
 ## Included Development Source
 
-- `source/index.html`: final standalone HTML app source
-- `source/package.json`: Vercel deployment helper metadata
-- `source/vercel.json`: Vercel static routing configuration
+- `../index.html`: final standalone HTML app source with the Validation Lite logic
+- `../package.json`: Vercel deployment helper metadata
+- `../vercel.json`: Vercel static routing configuration
 
 ## Orchestration Position
 

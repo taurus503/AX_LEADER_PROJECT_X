@@ -6,115 +6,127 @@
   <title>Performance Attribution Engine | 전략 자동 평가</title>
   <style>
     :root{
-      --bg:#0a1222;
-      --panel:rgba(15,24,44,.82);
-      --card:rgba(18,28,52,.96);
-      --text:#eef3ff;
-      --muted:#9aabc9;
-      --line:rgba(170,190,255,.18);
-      --accent:#e55a73;
-      --teal:#31c9b2;
-      --blue:#4f7cff;
-      --green:#49d29d;
-      --amber:#f0b84d;
-      --shadow:0 24px 60px rgba(1,6,22,.42);
-      --radius:22px;
+      --bg:#eceff1;
+      --panel:#f7f8fa;
+      --card:#ffffff;
+      --text:#101418;
+      --muted:#5f6974;
+      --line:#111827;
+      --accent:#b42318;
+      --teal:#0f766e;
+      --blue:#1d4ed8;
+      --green:#166534;
+      --amber:#8a5b00;
+      --shadow:4px 4px 0 rgba(17,24,39,.9);
+      --radius:16px;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;min-height:100%;background:
-      radial-gradient(circle at top left,rgba(79,124,255,.22),transparent 32%),
-      radial-gradient(circle at top right,rgba(49,201,178,.12),transparent 28%),
-      linear-gradient(180deg,#09111f 0%,#0b1426 40%,#09111b 100%);
-      color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    body{padding:24px}
+    html,body{
+      margin:0;min-height:100%;background:var(--bg);color:var(--text);
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:16px
+    }
+    body{padding:28px}
     .shell{max-width:1500px;margin:0 auto;display:grid;gap:18px}
     .hero{
-      background:linear-gradient(180deg,rgba(18,28,52,.9),rgba(11,18,34,.9));
-      border:1px solid var(--line);border-radius:30px;padding:24px;box-shadow:var(--shadow);
-      display:grid;gap:18px;backdrop-filter:blur(16px)
+      background:var(--panel);
+      border:2px solid var(--line);
+      border-radius:22px;
+      padding:28px;
+      box-shadow:var(--shadow);
+      display:grid;
+      gap:18px
     }
     .hero-top{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
     .brand{display:grid;gap:10px;max-width:920px}
-    .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--accent)}
-    .title{font-size:clamp(30px,4vw,52px);line-height:1.04;margin:0;font-weight:900;letter-spacing:-.04em}
-    .subtitle{margin:0;color:var(--muted);font-size:15px;line-height:1.7;max-width:74ch}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:900;color:var(--accent)}
+    .title{font-size:clamp(34px,4vw,58px);line-height:1.02;margin:0;font-weight:900;letter-spacing:-.05em}
+    .subtitle{margin:0;color:var(--muted);font-size:16px;line-height:1.7;max-width:74ch}
     .status-row{display:flex;gap:10px;flex-wrap:wrap}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--muted)}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;
+      background:var(--card);border:2px solid var(--line);font-size:12px;font-weight:800;color:var(--muted)
+    }
     .pill strong{font-size:12px;color:var(--text)}
-    .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
-    .controls{padding:16px;display:grid;gap:14px}
+    .panel{background:var(--panel);border:2px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .controls{padding:18px;display:grid;gap:14px}
     .grid-controls{display:grid;grid-template-columns:1.4fr .9fr .7fr .7fr auto;gap:12px}
     .field{display:grid;gap:7px}
-    .label{font-size:12px;font-weight:800;color:var(--teal);letter-spacing:.04em;text-transform:uppercase}
+    .label{font-size:12px;font-weight:900;color:var(--teal);letter-spacing:.05em;text-transform:uppercase}
     .input,.select,.button{
-      width:100%;border-radius:16px;border:1px solid var(--line);background:rgba(18,28,52,.96);color:var(--text);
-      padding:14px 14px;font:inherit;min-height:48px
+      width:100%;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--text);
+      padding:14px 14px;font:inherit;min-height:48px;font-size:15px
     }
-    .input,.select{background:rgba(18,28,52,.96)}
-    .input:focus,.select:focus{outline:2px solid rgba(79,124,255,.22);border-color:rgba(79,124,255,.6)}
-    .button{cursor:pointer;font-weight:800}
-    .button.primary{background:linear-gradient(135deg,var(--blue),#1849ab);border-color:transparent;color:#fff}
-    .button.secondary{background:rgba(255,255,255,.03);color:var(--text)}
+    .input,.select{background:var(--card)}
+    .input:focus,.select:focus{outline:none;box-shadow:0 0 0 3px rgba(29,78,216,.16)}
+    .button{cursor:pointer;font-weight:900}
+    .button.primary{background:var(--accent);border-color:var(--line);color:#fff}
+    .button.secondary{background:var(--card);color:var(--text)}
     .button:hover{transform:translateY(-1px)}
     .stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
     .breakdown-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
     .card{
-      background:linear-gradient(180deg,rgba(18,28,52,.96),rgba(10,17,33,.96));
-      border:1px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:10px;min-height:122px
+      background:var(--card);
+      border:2px solid var(--line);
+      border-radius:14px;
+      padding:16px;
+      display:grid;
+      gap:10px;
+      min-height:122px;
+      box-shadow:var(--shadow)
     }
     .card.tight{min-height:110px}
-    .metric-name{font-size:12px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:.04em}
-    .metric-value{font-size:28px;font-weight:900;letter-spacing:-.04em}
-    .metric-note{font-size:12px;color:var(--muted);line-height:1.4}
-    .metric-value.small{font-size:24px}
+    .metric-name{font-size:12px;font-weight:900;color:var(--teal);text-transform:uppercase;letter-spacing:.05em}
+    .metric-value{font-size:30px;font-weight:900;letter-spacing:-.05em;line-height:1}
+    .metric-note{font-size:13px;color:var(--muted);line-height:1.5}
+    .metric-value.small{font-size:26px}
     .metric-value.positive{color:var(--green)}
     .metric-value.negative{color:var(--accent)}
     .metric-value.neutral{color:var(--blue)}
     .main-grid{display:grid;grid-template-columns:1.28fr .72fr;gap:18px;align-items:start}
     .section{padding:18px}
     .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}
-    .section-title h2{margin:0;font-size:18px;letter-spacing:-.02em}
-    .section-title span{color:var(--muted);font-size:12px;font-weight:700}
-    .chart-box{background:linear-gradient(180deg,rgba(18,28,52,.96),rgba(10,17,33,.96));border:1px solid var(--line);border-radius:20px;padding:14px}
+    .section-title h2{margin:0;font-size:20px;letter-spacing:-.03em}
+    .section-title span{color:var(--muted);font-size:12px;font-weight:800}
+    .chart-box{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
     .chart{width:100%;height:300px;display:block}
     .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
-    .legend .item{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:700}
+    .legend .item{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:800}
     .dot{width:10px;height:10px;border-radius:999px;background:var(--blue)}
     .dot.loss{background:var(--accent)}
     .dot.neutral{background:var(--muted)}
     .stack{display:grid;gap:12px}
     .info-grid{display:grid;gap:10px}
-    .info-row{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid rgba(214,217,220,.8)}
+    .info-row{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:12px 0;border-bottom:2px solid rgba(17,24,39,.1)}
     .info-row:last-child{border-bottom:0}
-    .info-key{font-size:12px;font-weight:800;color:#59636e;text-transform:uppercase;letter-spacing:.04em}
-    .info-val{font-size:14px;line-height:1.6;color:var(--text)}
+    .info-key{font-size:12px;font-weight:900;color:#475467;text-transform:uppercase;letter-spacing:.05em}
+    .info-val{font-size:14px;line-height:1.7;color:var(--text)}
     .contribution-list{display:grid;gap:12px}
-    .contribution-item{display:grid;gap:8px;padding:2px 0 12px;border-bottom:1px solid rgba(214,217,220,.8)}
+    .contribution-item{display:grid;gap:8px;padding:2px 0 12px;border-bottom:2px solid rgba(17,24,39,.1)}
     .contribution-item:last-child{border-bottom:0;padding-bottom:0}
     .contribution-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
     .contribution-name{font-size:14px;font-weight:900;color:var(--text);line-height:1.35}
     .contribution-sub{font-size:12px;color:var(--muted);margin-top:4px}
     .contribution-value{font-size:14px;font-weight:900;white-space:nowrap}
-    .bar-track{height:12px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+    .bar-track{height:12px;background:#edf1f4;border-radius:999px;overflow:hidden;border:2px solid var(--line)}
     .bar-fill{height:100%;border-radius:999px}
-    .bar-fill.win{background:linear-gradient(90deg,var(--green),#6ec28a)}
-    .bar-fill.loss{background:linear-gradient(90deg,var(--accent),#ee8076)}
-    .bar-fill.neutral{background:linear-gradient(90deg,var(--blue),#7ea2ff)}
+    .bar-fill.win{background:var(--green)}
+    .bar-fill.loss{background:var(--accent)}
+    .bar-fill.neutral{background:var(--blue)}
     .contribution-foot{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)}
-    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:18px;background:rgba(18,28,52,.96)}
+    .table-wrap{overflow:auto;border:2px solid var(--line);border-radius:16px;background:var(--card);box-shadow:var(--shadow)}
     table{width:100%;border-collapse:collapse;min-width:980px}
-    thead th{position:sticky;top:0;background:rgba(21,33,60,.98);color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:14px;border-bottom:1px solid var(--line)}
-    tbody td{padding:13px 14px;border-bottom:1px solid rgba(170,190,255,.12);font-size:13px;vertical-align:top}
-    tbody tr:hover{background:rgba(255,255,255,.02)}
-    .chip{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800}
-    .chip.win{background:rgba(73,210,157,.12);color:#8ff0c4}
-    .chip.loss{background:rgba(229,90,115,.12);color:#ffb1bf}
-    .chip.flat{background:rgba(193,199,208,.12);color:var(--muted)}
-    .hint{color:var(--muted);font-size:12px;line-height:1.55}
-    .error{padding:14px 16px;background:rgba(214,75,58,.08);border:1px solid rgba(214,75,58,.25);border-radius:16px;color:#8d2f24;font-size:13px;line-height:1.6}
+    thead th{position:sticky;top:0;background:#eef1f4;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:14px;border-bottom:2px solid var(--line)}
+    tbody td{padding:13px 14px;border-bottom:1px solid rgba(17,24,39,.14);font-size:13px;vertical-align:top}
+    tbody tr:hover{background:#f5f6f8}
+    .chip{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:900;border:2px solid var(--line)}
+    .chip.win{background:#e7f5ec;color:var(--green)}
+    .chip.loss{background:#fde8e6;color:var(--accent)}
+    .chip.flat{background:#edf1f4;color:var(--muted)}
+    .hint{color:var(--muted);font-size:13px;line-height:1.55}
+    .error{padding:14px 16px;background:#fde8e6;border:2px solid var(--accent);border-radius:12px;color:var(--accent);font-size:13px;line-height:1.6;font-weight:700}
     .empty{padding:26px;text-align:center;color:var(--muted);font-size:14px}
     .tagbar{display:flex;flex-wrap:wrap;gap:8px}
-    .tag{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--text)}
+    .tag{padding:6px 10px;border-radius:999px;background:var(--card);border:2px solid var(--line);font-size:12px;font-weight:800;color:var(--text)}
     @media (max-width:1180px){
       .grid-controls{grid-template-columns:1fr 1fr}
       .grid-controls .span-2{grid-column:span 2}
@@ -129,7 +141,7 @@
       .grid-controls .span-2{grid-column:auto}
       .info-row{grid-template-columns:1fr}
       .metric-value{font-size:24px}
-      .title{font-size:28px}
+      .title{font-size:30px}
     }
   </style>
 </head>
@@ -866,8 +878,8 @@
       const axis0 = toY(0);
       const gridValues = [min, (min + max) / 2, max];
       const gridLines = gridValues.map((value) => `
-        <line x1="${pad.left}" y1="${toY(value)}" x2="${w - pad.right}" y2="${toY(value)}" stroke="rgba(170,190,255,.14)" stroke-width="1" />
-        <text x="${pad.left - 10}" y="${toY(value) + 4}" text-anchor="end" fill="#9aabc9" font-size="12">${fmtNum(value, 0)}</text>
+        <line x1="${pad.left}" y1="${toY(value)}" x2="${w - pad.right}" y2="${toY(value)}" stroke="rgba(17,24,39,.14)" stroke-width="1.2" />
+        <text x="${pad.left - 10}" y="${toY(value) + 4}" text-anchor="end" fill="#5f6974" font-size="12" font-weight="700">${fmtNum(value, 0)}</text>
       `).join('');
       const xLabels = curve.length > 1 ? [
         [0, '시작'],
@@ -875,21 +887,15 @@
         [curve.length - 1, '종료']
       ] : [];
       const labels = xLabels.map(([index, label]) => `
-        <text x="${toX(index)}" y="${h - 8}" text-anchor="middle" fill="#9aabc9" font-size="12">${label}</text>
+        <text x="${toX(index)}" y="${h - 8}" text-anchor="middle" fill="#5f6974" font-size="12" font-weight="700">${label}</text>
       `).join('');
-      const pathStroke = curve.length ? '#4f7cff' : '#9aabc9';
+      const pathStroke = curve.length ? '#1d4ed8' : '#5f6974';
       const pointsPath = curve.length ? `<polyline points="${points}" fill="none" stroke="${pathStroke}" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" />` : '';
       svg.innerHTML = `
-        <defs>
-          <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stop-color="rgba(79,124,255,.28)"/>
-            <stop offset="100%" stop-color="rgba(79,124,255,.03)"/>
-          </linearGradient>
-        </defs>
-        <rect x="0" y="0" width="${w}" height="${h}" rx="20" fill="#0f182c"/>
+        <rect x="0" y="0" width="${w}" height="${h}" rx="16" fill="#ffffff"/>
         ${gridLines}
-        <line x1="${pad.left}" y1="${axis0}" x2="${w - pad.right}" y2="${axis0}" stroke="rgba(170,190,255,.32)" stroke-width="1.2" stroke-dasharray="4 5" />
-        ${curve.length ? `<path d="${area}" fill="url(#areaGrad)" stroke="none" />` : ''}
+        <line x1="${pad.left}" y1="${axis0}" x2="${w - pad.right}" y2="${axis0}" stroke="rgba(17,24,39,.4)" stroke-width="1.4" stroke-dasharray="4 5" />
+        ${curve.length ? `<path d="${area}" fill="rgba(29,78,216,.08)" stroke="none" />` : ''}
         ${pointsPath}
         ${labels}
       `;

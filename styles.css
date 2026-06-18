@@ -1349,3 +1349,868 @@ button, input, select, textarea { font: inherit; }
   .checkbox-field { grid-column: auto; grid-template-columns: 1fr auto; }
   .validation-input-item--wide { grid-column: auto; }
 }
+
+/* Tactical financial dashboard redesign */
+:root {
+  --bg: #ececec;
+  --bg-soft: #f4f4f4;
+  --panel: #f7f7f7;
+  --panel-strong: #ffffff;
+  --line: #141414;
+  --line-strong: #000000;
+  --ink: #101010;
+  --muted: #474747;
+  --blue: #1f5edb;
+  --blue-deep: #163fa8;
+  --teal: #0b6d67;
+  --amber: #9a5d00;
+  --red: #b3122d;
+  --green: #0e7a45;
+  --shadow: none;
+  --radius: 6px;
+  --radius-sm: 4px;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  color: var(--ink);
+  font-family: "Bahnschrift", "Segoe UI", "Malgun Gothic", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  background: var(--bg);
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  letter-spacing: -0.01em;
+}
+
+.app-shell {
+  width: min(1560px, calc(100% - 24px));
+  padding: 18px 0 28px;
+}
+
+.hero,
+.panel {
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.hero {
+  gap: 18px;
+  padding: 20px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
+}
+
+.hero__brand {
+  gap: 18px;
+}
+
+.brand-mark {
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  border: 2px solid var(--line);
+  background: var(--blue);
+  box-shadow: none;
+}
+
+.brand-mark img {
+  width: 30px;
+  height: 30px;
+  filter: none;
+}
+
+.eyebrow {
+  color: var(--teal);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.hero h1,
+.section-head h2,
+.committee-card h3,
+.subsection-head h3 {
+  color: var(--ink);
+  font-weight: 1000;
+  letter-spacing: -0.03em;
+}
+
+.hero h1 {
+  font-size: clamp(38px, 4.8vw, 66px);
+  line-height: 0.95;
+}
+
+.hero__copy {
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.hero__metrics {
+  gap: 10px;
+}
+
+.metric-card,
+.tile,
+.workflow-step,
+.workbench-card,
+.hero-card,
+.committee-card,
+.validation-card,
+.attrib-card,
+.strategy-card,
+.validation-panel,
+.validation-input-item,
+.validation-stat,
+.validation-info-box,
+.validation-summary-box,
+.validation-callout,
+.validation-details,
+.validation-foot > div,
+.snapshot-card,
+.reason-card,
+.news-card,
+.theme-card,
+.kpi-card,
+.bar-row,
+.detail-line,
+.battle-plan__row,
+.answer-box,
+.report-box,
+.question-box {
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-strong);
+  box-shadow: none;
+}
+
+.metric-card {
+  padding: 16px;
+}
+
+.metric-card .label,
+.kpi-card .label,
+.snapshot-card .label,
+.reason-card .impact,
+.news-card .meta,
+.theme-meta,
+.theme-keywords,
+.strategy-copy,
+.regime-copy,
+.hero-bullet span,
+.validation-hero__copy,
+.validation-input-item em,
+.validation-summary-box__text,
+.validation-info-box__text,
+.validation-callout__text,
+.validation-details__body,
+.validation-secondary,
+.battle-plan__label,
+.section-note,
+.status-line,
+.news-card .text,
+.answer-box,
+.report-box {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.metric-card .label,
+.kpi-card .label,
+.snapshot-card .label,
+.reason-card .impact,
+.news-card .meta,
+.battle-plan__label {
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metric-card .value,
+.kpi-card .value,
+.snapshot-card .value,
+.validation-input-item strong,
+.validation-stat strong,
+.strategy-title,
+.validation-hero__title,
+.regime-name,
+.ring span,
+.validation-card .value.large {
+  color: var(--ink);
+  font-weight: 1000;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-card .value,
+.kpi-card .value,
+.snapshot-card .value,
+.validation-input-item strong,
+.validation-stat strong {
+  font-size: 24px;
+  line-height: 1.08;
+}
+
+.section-head {
+  gap: 14px;
+  align-items: end;
+}
+
+.section-head h2 {
+  font-size: 28px;
+  line-height: 1.08;
+}
+
+.section-note {
+  max-width: 64ch;
+  text-align: right;
+}
+
+.tile-grid,
+.workflow-band,
+.scenario-grid,
+.input-grid,
+.market-snapshot,
+.validation-input-grid,
+.validation-stat-grid,
+.validation-duo,
+.validation-foot,
+.advisor-grid,
+.module-grid,
+.module-grid--hero,
+.committee-grid,
+.kpi-grid {
+  gap: 12px;
+}
+
+.tile {
+  min-height: 96px;
+  padding: 16px;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.tile:hover,
+.news-card:hover,
+.reason-card:hover,
+.theme-card:hover,
+.strategy-card:hover {
+  transform: none;
+  border-color: var(--red);
+  background: #fafafa;
+}
+
+.tile .tile__key,
+.workflow-step .step-label {
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.tile .tile__title {
+  font-size: 18px;
+  font-weight: 1000;
+}
+
+.tile .tile__desc,
+.workflow-step .step-value,
+.theme-title,
+.strategy-meta strong,
+.committee-item strong,
+.battle-plan__value {
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.workflow-step,
+.workbench-card,
+.hero-card,
+.committee-card,
+.validation-panel,
+.validation-card,
+.attrib-card,
+.strategy-card,
+.hero-bullet,
+.snapshot-card,
+.reason-card,
+.news-card,
+.theme-card,
+.kpi-card,
+.bar-row,
+.detail-line,
+.battle-plan__row,
+.validation-foot > div,
+.validation-input-item,
+.validation-stat,
+.validation-info-box,
+.validation-summary-box,
+.validation-callout,
+.validation-details {
+  padding: 14px;
+}
+
+.workbench-card {
+  gap: 16px;
+}
+
+.scenario-button,
+.action-button,
+.playbook-link,
+.count-pill,
+.status-pill,
+.score-pill,
+.event-pill,
+.tag-pill,
+.keyword-chip,
+.validation-chip,
+.mini-link {
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-weight: 900;
+  box-shadow: none;
+}
+
+.scenario-button,
+.action-button,
+.playbook-link {
+  min-height: 46px;
+  padding: 0 14px;
+  font-size: 16px;
+}
+
+.scenario-button {
+  color: var(--ink);
+  background: #fafafa;
+}
+
+.scenario-button.active {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--line);
+}
+
+.action-button {
+  color: #fff;
+  background: var(--blue);
+  border-color: var(--line);
+}
+
+.action-button.secondary {
+  color: var(--ink);
+  background: var(--panel-strong);
+}
+
+.action-button:hover,
+.playbook-link:hover,
+.scenario-button:hover {
+  transform: none;
+  filter: none;
+  background: var(--red);
+  color: #fff;
+}
+
+.date-field span,
+.input-grid span,
+.checkbox-field span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.input-grid input,
+.input-grid select,
+.date-field input,
+.question-box {
+  min-height: 48px;
+  padding: 12px 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  box-shadow: none;
+}
+
+.question-box {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.input-grid input::placeholder,
+.question-box::placeholder {
+  color: #666;
+}
+
+.input-grid input:focus,
+.input-grid select:focus,
+.date-field input:focus,
+.question-box:focus {
+  outline: 3px solid var(--blue);
+  outline-offset: 0;
+  border-color: var(--line);
+  background: #fff;
+  box-shadow: none;
+}
+
+.checkbox-field {
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.checkbox-field input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--red);
+}
+
+.hero-card--regime {
+  grid-template-columns: minmax(0, 1fr) 170px;
+  gap: 16px;
+  align-items: center;
+}
+
+.regime-name {
+  font-size: clamp(40px, 4.8vw, 68px);
+  line-height: 0.92;
+}
+
+.ring {
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border: 3px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.ring::before {
+  display: none !important;
+}
+
+.ring span {
+  font-size: 42px;
+}
+
+.hero-bullet {
+  padding: 14px 16px;
+}
+
+.hero-bullet strong,
+.count-pill,
+.status-pill,
+.score-pill,
+.event-pill,
+.tag-pill,
+.validation-chip {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.kpi-card {
+  min-height: 112px;
+}
+
+.count-pill,
+.status-pill,
+.score-pill,
+.event-pill,
+.tag-pill,
+.keyword-chip,
+.validation-chip {
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.score-pill {
+  background: #fff;
+  color: var(--blue);
+}
+
+.score-pill--danger {
+  color: var(--red);
+}
+
+.status-pill.pass,
+.status-pill.review,
+.status-pill.reject,
+.risk-pill.low,
+.risk-pill.medium,
+.risk-pill.high,
+.tag-pill.low,
+.tag-pill.medium,
+.tag-pill.high,
+.event-pill {
+  background: #fff;
+}
+
+.status-pill.pass,
+.risk-pill.low,
+.tag-pill.low {
+  color: var(--teal);
+}
+
+.status-pill.review,
+.risk-pill.medium,
+.tag-pill.medium {
+  color: var(--amber);
+}
+
+.status-pill.reject,
+.risk-pill.high,
+.tag-pill.high {
+  color: var(--red);
+}
+
+.event-pill {
+  color: var(--red);
+}
+
+.keyword-chip {
+  background: #fff;
+  color: var(--blue);
+  border-color: var(--blue);
+}
+
+.news-card,
+.reason-card,
+.theme-card,
+.strategy-card,
+.validation-input-item,
+.validation-stat,
+.validation-info-box,
+.validation-summary-box,
+.validation-callout,
+.validation-details,
+.validation-foot > div,
+.snapshot-card,
+.bar-row {
+  background: #fff;
+}
+
+.news-card .title,
+.reason-card .title,
+.theme-title,
+.strategy-title,
+.validation-hero__title {
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.news-card .text,
+.theme-keywords,
+.strategy-copy,
+.validation-hero__copy,
+.validation-input-item em,
+.validation-summary-box__text,
+.validation-info-box__text,
+.validation-callout__text,
+.validation-details__body,
+.hero-bullet span,
+.regime-copy {
+  font-size: 15px;
+}
+
+.market-snapshot {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.snapshot-card .value {
+  font-size: 22px;
+}
+
+.headline,
+.report-box,
+.answer-box {
+  font-size: 16px;
+}
+
+.theme-card {
+  gap: 14px;
+}
+
+.theme-index {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  border: 2px solid var(--line);
+  background: var(--blue);
+  color: #fff;
+}
+
+.strategy-card {
+  min-height: 190px;
+}
+
+.strategy-card--watchlist {
+  background: #fff;
+}
+
+.strategy-card--avoid {
+  background: #fff;
+  border-color: var(--red);
+}
+
+.strategy-meta {
+  gap: 10px;
+}
+
+.strategy-meta div,
+.committee-item,
+.attrib-card,
+.battle-plan__row {
+  border: 2px solid var(--line);
+  background: #fdfdfd;
+  border-radius: var(--radius-sm);
+}
+
+.playbook-link {
+  background: var(--ink);
+  color: #fff;
+}
+
+.playbook-link:hover {
+  background: var(--blue);
+}
+
+.allocation-block {
+  border-top: 2px solid var(--line);
+}
+
+.bar-row {
+  gap: 8px;
+}
+
+.bar-label {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.bar-track {
+  height: 14px;
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  background: #efefef;
+}
+
+.bar-fill {
+  background: var(--red);
+}
+
+.validation-panel-head h3 {
+  font-size: 24px;
+  font-weight: 1000;
+}
+
+.advisor-panel .brief-copy,
+.advisor-panel .brief-line,
+.validation-card .warning,
+.validation-card .label,
+.validation-card .value,
+.attrib-card .label,
+.attrib-card .value {
+  color: var(--ink);
+}
+
+.advisor-panel .brief-line {
+  border: 2px solid var(--line);
+  background: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.advisor-panel .brief-copy {
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.validation-card .warning {
+  color: var(--red);
+  font-weight: 800;
+}
+
+.validation-input-item span,
+.validation-stat span,
+.validation-summary-box__label,
+.validation-info-box__title,
+.validation-callout__label,
+.validation-foot span {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.validation-input-item strong,
+.validation-stat strong {
+  font-size: 20px;
+}
+
+.validation-input-foot {
+  border-left: 6px solid var(--red);
+  background: #f7f7f7;
+}
+
+.validation-hero {
+  border: 2px solid var(--line);
+  background: #fff;
+  border-radius: var(--radius-sm);
+}
+
+.validation-summary-box {
+  border-left: 6px solid var(--blue);
+}
+
+.validation-callout {
+  border-left: 6px solid var(--teal);
+}
+
+.validation-details summary {
+  font-size: 16px;
+}
+
+.validation-foot > div {
+  min-height: 92px;
+}
+
+.module4-legacy-frame {
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+.module4-legacy-frame iframe {
+  background: #fff;
+}
+
+.mini-link {
+  color: var(--blue);
+  background: #fff;
+}
+
+@media (max-width: 1200px) {
+  .hero,
+  .module-grid,
+  .module-grid--hero,
+  .committee-grid,
+  .workbench-grid,
+  .validation-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .hero__metrics,
+  .tile-grid,
+  .workflow-band,
+  .kpi-grid,
+  .scenario-grid,
+  .input-grid,
+  .market-snapshot,
+  .validation-input-grid,
+  .validation-stat-grid,
+  .validation-duo,
+  .validation-foot,
+  .advisor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-card--regime {
+    grid-template-columns: 1fr 160px;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    width: min(100% - 16px, 100%);
+    padding-top: 10px;
+  }
+
+  .hero {
+    padding: 16px;
+  }
+
+  .hero__brand {
+    flex-direction: column;
+  }
+
+  .hero__metrics,
+  .tile-grid,
+  .workflow-band,
+  .kpi-grid,
+  .scenario-grid,
+  .input-grid,
+  .market-snapshot,
+  .validation-shell,
+  .validation-input-grid,
+  .validation-stat-grid,
+  .validation-duo,
+  .validation-foot,
+  .advisor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel .section-head,
+  .committee-card .section-head,
+  .strategy-top {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .section-note {
+    text-align: left;
+  }
+
+  .hero-card--regime {
+    grid-template-columns: 1fr;
+  }
+
+  .ring {
+    width: 100%;
+    min-height: 150px;
+  }
+
+  .checkbox-field {
+    grid-column: auto;
+    grid-template-columns: 1fr auto;
+  }
+
+  .validation-input-item--wide {
+    grid-column: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

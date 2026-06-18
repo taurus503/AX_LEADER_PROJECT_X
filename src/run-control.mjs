@@ -33,8 +33,8 @@ const STYLE = `
   padding:12px 18px;background:#1f2933;color:#fff;font-weight:600;font-size:14px;cursor:pointer;
   box-shadow:0 8px 24px rgba(15,23,42,.28);display:flex;align-items:center;gap:8px;}
 .rc-toggle:hover{background:#111827;}
-.rc-panel{position:fixed;right:20px;bottom:78px;z-index:9999;width:380px;max-width:calc(100vw - 32px);
-  height:560px;max-height:calc(100vh - 120px);background:#0f1620;color:#e8edf3;border-radius:16px;
+.rc-panel{position:fixed;right:20px;bottom:82px;z-index:9999;width:420px;max-width:calc(100vw - 24px);
+  height:620px;max-height:calc(100vh - 96px);background:#0f1620;color:#e8edf3;border-radius:16px;
   box-shadow:0 24px 60px rgba(2,8,23,.5);display:none;flex-direction:column;overflow:hidden;
   font-family:inherit;border:1px solid rgba(148,163,184,.18);}
 .rc-panel.open{display:flex;}
@@ -71,10 +71,16 @@ const STYLE = `
 @keyframes rc-rot{to{transform:rotate(360deg)}}
 `;
 
+const SUMMARY_ACTIONS = [
+  { label: "요약", prompt: "모듈 1~4 통합 요약해줘", mode: "overview" },
+  { label: "실행요약", prompt: "모듈 1~4 실행요약해줘", mode: "execution" },
+  { label: "리스크요약", prompt: "모듈 1~4 리스크요약해줘", mode: "risk" }
+];
+
 const QUICK_PROMPTS = [
   "직전 거래일 기준으로 분석해서 브리핑해줘",
-  "약세/위기 시나리오로 바꾸면 검증이 어떻게 변해?",
-  "지금 왜 이 확신도가 나왔는지 초보자에게 설명해줘",
+  "현재 국면을 시나리오로 바꾸면 검증이 어떻게 변해?",
+  "지금의 확신도가 나온 이유를 초보자에게 설명해줘",
   "변동성을 50%로 올리면 추천 전략이 어떻게 달라져?"
 ];
 
@@ -97,6 +103,13 @@ export function mountRunControl(controller) {
   const textarea = el("textarea", { placeholder: "예: 6/18 기준으로 분석해서 검증까지 브리핑해줘", rows: "1" });
   const sendBtn = el("button", { type: "button", text: "전송" });
 
+  const summaryBar = el("div", { class: "rc-quick rc-summary-bar" });
+  SUMMARY_ACTIONS.forEach((action) => {
+    const b = el("button", { type: "button", text: action.label });
+    b.title = action.prompt;
+    b.addEventListener("click", () => { textarea.value = action.prompt; submit(); });
+    summaryBar.appendChild(b);
+  });
   const quick = el("div", { class: "rc-quick" });
   QUICK_PROMPTS.forEach((p) => {
     const b = el("button", { type: "button", text: p.length > 22 ? p.slice(0, 21) + "…" : p });
@@ -115,6 +128,7 @@ export function mountRunControl(controller) {
       (() => { const c = el("button", { class: "rc-close", text: "×" }); c.addEventListener("click", () => panel.classList.remove("open")); return c; })()
     ]),
     log,
+    summaryBar,
     quick,
     el("div", { class: "rc-form" }, [textarea, sendBtn]),
     el("div", { class: "rc-foot", text: "이 도구는 검토 보조용이며 투자 자문이 아닙니다." })
@@ -138,8 +152,13 @@ export function mountRunControl(controller) {
     set_scenario: (a) => controller.setScenario(a.scenario),
     set_inputs: (a) => controller.setInputs(a || {}),
     load_market_data: (a) => controller.loadMarketData(a && a.asOf),
-    load_news: (a) => controller.loadNews((a && a.offset) || 0),
+    load_news: (a) => controller.loadNews((a && a.offset) || 0, a && a.asOf),
     run_agent: () => controller.runAgent(),
+    refresh_module23: () => controller.refreshModule23(),
+    summarize_modules: (a) => controller.getSummary((a && a.mode) || "overview"),
+    set_module4_request: (a) => controller.setModule4Request(a || {}),
+    get_module2_state: () => controller.getModule2State(),
+    get_module3_state: () => controller.getModule3State(),
     answer_question: (a) => ({ answer: controller.answerQuestion(a && a.question) }),
     get_state: () => controller.getState()
   };

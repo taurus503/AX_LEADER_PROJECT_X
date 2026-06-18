@@ -3,10 +3,11 @@ import {
   computeFeaturesFromPrices,
   fetchYahooMarketFeatures,
   getDefaultTradingDate,
-  normalizeDateInput,
+  normalizeDateInput as normalizeDateInputFromProvider,
   parseYahooChartResponse
 } from "./src/market-data-provider.mjs";
 import {
+  buildGoogleNewsSearchUrl,
   fetchGoogleNewsContext,
   parseGoogleNewsRss,
   summarizeNewsContext
@@ -22,6 +23,15 @@ let newsState = null;
 let analysis = null;
 let currentScenario = "transition";
 let newsOffset = 0;
+
+function normalizeDateInput(value) {
+  const providerValue = typeof normalizeDateInputFromProvider === "function"
+    ? normalizeDateInputFromProvider(value)
+    : "";
+  if (providerValue) return providerValue;
+  const match = String(value || "").match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : "";
+}
 
 function byId(id) {
   nodes[id] ||= document.getElementById(id);
@@ -45,6 +55,13 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function getNewsSearchUrl(item, asOf) {
+  if (item?.searchUrl) return item.searchUrl;
+  const title = String(item?.title || "").trim();
+  if (!title) return "";
+  return buildGoogleNewsSearchUrl(`"${title}"`, asOf);
 }
 
 function scenarioTiles() {
@@ -254,11 +271,16 @@ function renderNews(newsContext) {
     .map((keyword) => `<span class="keyword-chip">${escapeHtml(keyword)}</span>`)
     .join("");
   byId("news-list").innerHTML = (newsContext.topItems || []).map((item, index) => `
-    <div class="news-card">
+    <article class="news-card">
       <div class="meta">Top ${pageInfo.startRank + index}</div>
-      <div class="title">${escapeHtml(item.title)}</div>
-      <div class="text">${escapeHtml(item.source || "Google News")} · ${escapeHtml(item.publishedAt || "")}</div>
-    </div>
+      <a class="news-title-link" href="${escapeHtml(getNewsSearchUrl(item, newsContext.asOf))}" target="_blank" rel="noreferrer">
+        ${escapeHtml(item.title)}
+      </a>
+      <div class="text">
+        <span>${escapeHtml(item.source || "Google News")} · ${escapeHtml(item.publishedAt || "")}</span>
+        <a class="mini-link" href="${escapeHtml(getNewsSearchUrl(item, newsContext.asOf))}" target="_blank" rel="noreferrer">검색 열기</a>
+      </div>
+    </article>
   `).join("");
 }
 
@@ -391,12 +413,15 @@ function renderStrategies(data) {
     <article class="theme-card">
       <div class="theme-index">${index + 1}</div>
       <div class="theme-body">
-        <div class="theme-title">${escapeHtml(item.title)}</div>
+        <a class="theme-title theme-title-link" href="${escapeHtml(getNewsSearchUrl(item, data.input?.asOf || newsState?.asOf))}" target="_blank" rel="noreferrer">
+          ${escapeHtml(item.title)}
+        </a>
         <div class="theme-meta">
           <span class="source-tag">${escapeHtml(item.source || "search view")}</span>
           <span>${escapeHtml(item.publishedAt || data.input.asOf || "")}</span>
         </div>
         <div class="theme-keywords">${escapeHtml((item.keywords || []).join(" / ") || data.marketInterpretation)}</div>
+        <a class="mini-link" href="${escapeHtml(getNewsSearchUrl(item, data.input?.asOf || newsState?.asOf))}" target="_blank" rel="noreferrer">검색 열기</a>
       </div>
     </article>
   `).join("");
@@ -405,12 +430,15 @@ function renderStrategies(data) {
     <article class="theme-card">
       <div class="theme-index">${index + 1}</div>
       <div class="theme-body">
-        <div class="theme-title">${escapeHtml(item.title)}</div>
+        <a class="theme-title theme-title-link" href="${escapeHtml(getNewsSearchUrl(item, data.input?.asOf || newsState?.asOf))}" target="_blank" rel="noreferrer">
+          ${escapeHtml(item.title)}
+        </a>
         <div class="theme-meta">
           <span class="source-tag">${escapeHtml(item.source || "report view")}</span>
           <span>${escapeHtml(item.publishedAt || data.input.asOf || "")}</span>
         </div>
         <div class="theme-keywords">${escapeHtml((item.keywords || []).join(" / ") || data.regimeReason)}</div>
+        <a class="mini-link" href="${escapeHtml(getNewsSearchUrl(item, data.input?.asOf || newsState?.asOf))}" target="_blank" rel="noreferrer">검색 열기</a>
       </div>
     </article>
   `).join("");
@@ -737,9 +765,10 @@ async function loadMarket(asOf, { useSampleFallback = true } = {}) {
   }
 }
 
-async function loadNews(offset = 0, { useSampleFallback = true } = {}) {
+async function loadNews(offset = 0, { useSampleFallback = true, asOf } = {}) {
+  const date = normalizeDateInput(asOf) || normalizeDateInput(byId("market-date-input")?.value) || getDefaultTradingDate();
   try {
-    const response = await fetch(`/api/market-news?offset=${offset}`, { cache: "no-store" });
+    const response = await fetch(`/api/market-news?offset=${offset}&asOf=${encodeURIComponent(date)}`, { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok || !payload.ok) throw new Error(payload.error || `market news failed (${response.status})`);
     newsState = {
@@ -755,14 +784,26 @@ async function loadNews(offset = 0, { useSampleFallback = true } = {}) {
     const items = Array.isArray(sampleNews.items) ? sampleNews.items : [];
     const pageSize = 3;
     const topItems = items.slice(offset, offset + pageSize);
-    newsState = summarizeNewsContext(topItems, { offset, pageSize });
+    newsState = summarizeNewsContext(topItems, { offset, pageSize, asOf: date });
     newsState.allItems = items;
     newsState.keywords = sampleNews.keywords || newsState.keywords;
-    newsState.asOf = sampleNews.asOf || getDefaultTradingDate();
+    newsState.asOf = date || sampleNews.asOf || getDefaultTradingDate();
     newsState.note = `실제 뉴스 호출 실패로 sample-data.json을 사용했습니다. (${error.message})`;
     newsOffset = offset;
     return newsState;
   }
+}
+
+async function refreshForMarketDate(asOf) {
+  const date = normalizeDateInput(asOf) || getDefaultTradingDate();
+  byId("market-date-input").value = date;
+  byId("data-status").textContent = `${date} 기준 시장/뉴스를 다시 불러오는 중입니다.`;
+  byId("news-status").textContent = `${date} 기준 뉴스/리포트를 다시 불러오는 중입니다.`;
+  await loadMarket(date, { useSampleFallback: true });
+  syncFieldsFromMarket(marketState);
+  await loadNews(0, { useSampleFallback: true, asOf: date });
+  await runAgent();
+  return getRunControlState();
 }
 
 function syncFieldsFromMarket(market) {
@@ -805,6 +846,166 @@ const INPUT_FIELD_IDS = {
   slem: "input-slem",
   gelmanRubin: "input-gelmanRubin"
 };
+
+const MODULE4_FRAME_ID = "module4-attribution-frame";
+
+function normalizeLookupKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getModule4Frame() {
+  return byId(MODULE4_FRAME_ID);
+}
+
+function getModule4Document() {
+  const frame = getModule4Frame();
+  try {
+    return frame?.contentDocument || frame?.contentWindow?.document || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function readModule4Text(doc, id) {
+  return doc?.getElementById(id)?.textContent?.trim() || null;
+}
+
+function readModule4Snapshot() {
+  const doc = getModule4Document();
+  if (!doc) {
+    return { ready: false, note: "모듈4 iframe을 읽을 수 없습니다." };
+  }
+  const select = doc.getElementById("strategySelect");
+  return {
+    ready: true,
+    sourceUrl: doc.getElementById("sourceUrl")?.value || null,
+    sourceHost: readModule4Text(doc, "sourceHost"),
+    strategy: readModule4Text(doc, "currentStrategy"),
+    strategySlug: select?.value || null,
+    range: readModule4Text(doc, "currentRange"),
+    status: readModule4Text(doc, "statusBox"),
+    metrics: {
+      trades: readModule4Text(doc, "metricTrades"),
+      winRate: readModule4Text(doc, "metricWinRate"),
+      totalPnl: readModule4Text(doc, "metricTotalPnl"),
+      avgPnl: readModule4Text(doc, "metricAvgPnl"),
+      pf: readModule4Text(doc, "metricPf"),
+      mdd: readModule4Text(doc, "metricMdd")
+    }
+  };
+}
+
+async function ensureModule4Ready(timeoutMs = 12000) {
+  const frame = getModule4Frame();
+  if (!frame) {
+    throw new Error("모듈4 iframe을 찾을 수 없습니다.");
+  }
+
+  const immediateDoc = getModule4Document();
+  const immediateWin = frame.contentWindow;
+  if (
+    immediateDoc?.getElementById("strategySelect") &&
+    immediateDoc?.getElementById("evaluateBtn") &&
+    typeof immediateWin?.refresh === "function" &&
+    typeof immediateWin?.evaluate === "function" &&
+    typeof immediateWin?.updateStrategySelection === "function"
+  ) {
+    return { frame, doc: immediateDoc };
+  }
+
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("모듈4 iframe 로드를 기다리는 동안 시간이 초과되었습니다."));
+    }, timeoutMs);
+    frame.addEventListener("load", () => {
+      clearTimeout(timer);
+      resolve();
+    }, { once: true });
+  });
+
+  const loadedDoc = getModule4Document();
+  if (!loadedDoc) {
+    throw new Error("모듈4 iframe 문서를 읽지 못했습니다.");
+  }
+  return { frame, doc: loadedDoc };
+}
+
+function findModule4StrategyOption(doc, query) {
+  const select = doc?.getElementById("strategySelect");
+  if (!select) return null;
+  const options = Array.from(select.options || []);
+  const needle = normalizeLookupKey(query);
+  return options.find((option) => {
+    const value = normalizeLookupKey(option.value);
+    const label = normalizeLookupKey(option.textContent);
+    return value === needle || label === needle || value.includes(needle) || label.includes(needle);
+  }) || null;
+}
+
+async function applyModule4Request(request = {}) {
+  const { frame, doc } = await ensureModule4Ready();
+  const win = frame.contentWindow;
+  const sourceUrl = typeof request.sourceUrl === "string" ? request.sourceUrl.trim() : "";
+  const startDate = typeof request.startDate === "string" ? request.startDate.trim() : "";
+  const endDate = typeof request.endDate === "string" ? request.endDate.trim() : "";
+  const strategyQuery = [request.strategy, request.strategyName, request.strategySlug]
+    .find((value) => typeof value === "string" && value.trim())
+    ?.trim();
+
+  const sourceInput = doc.getElementById("sourceUrl");
+  if (sourceInput && sourceUrl) {
+    sourceInput.value = sourceUrl;
+  }
+
+  const needsReload = Boolean(sourceUrl) || !doc.getElementById("strategySelect")?.options?.length;
+  if (needsReload) {
+    if (typeof win.refresh === "function") {
+      await win.refresh();
+    } else {
+      doc.getElementById("reloadBtn")?.click();
+    }
+  }
+
+  const refreshedDoc = getModule4Document();
+  if (!refreshedDoc) {
+    throw new Error("모듈4 문서를 다시 읽지 못했습니다.");
+  }
+
+  const refreshedStart = refreshedDoc.getElementById("startDate");
+  const refreshedEnd = refreshedDoc.getElementById("endDate");
+  if (refreshedStart && startDate) refreshedStart.value = startDate;
+  if (refreshedEnd && endDate) refreshedEnd.value = endDate;
+
+  let appliedStrategy = false;
+  if (strategyQuery) {
+    const select = refreshedDoc.getElementById("strategySelect");
+    const option = findModule4StrategyOption(refreshedDoc, strategyQuery);
+    if (!option) {
+      throw new Error(`모듈4 전략을 찾지 못했습니다: ${strategyQuery}`);
+    }
+    select.value = option.value;
+    if (typeof win.updateStrategySelection === "function") {
+      win.updateStrategySelection(option.value, { preserveDates: true });
+    } else {
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    appliedStrategy = true;
+  }
+
+  if (!appliedStrategy && (startDate || endDate)) {
+    if (typeof win.evaluate === "function") {
+      win.evaluate();
+    } else {
+      refreshedDoc.getElementById("evaluateBtn")?.click();
+    }
+  }
+
+  return readModule4Snapshot();
+}
 
 function getRunControlState() {
   if (!analysis) return { ready: false, note: "아직 분석이 실행되지 않았습니다." };
@@ -851,6 +1052,9 @@ function getRunControlState() {
       regimeFit: analysis.attribution.regimeFit?.summary,
       updateSignal: analysis.attribution.updateSignal
     } : null,
+    module2: getModule2State(),
+    module3: getModule3State(),
+    module4: readModule4Snapshot(),
     committee: analysis.committee ? {
       recommendation: analysis.committee.recommendation,
       keyRisk: analysis.committee.keyRisk,
@@ -864,8 +1068,224 @@ function getRunControlState() {
   };
 }
 
+function buildSummaryBundle(mode = "overview") {
+  if (!analysis) {
+    return {
+      ready: false,
+      mode,
+      note: "Dashboard is not ready yet."
+    };
+  }
+
+  const state = getRunControlState();
+  const module2 = getModule2State();
+  const module3 = getModule3State();
+  const module4 = readModule4Snapshot();
+  const topRecommended = state.topRecommended?.[0] || null;
+  const validationStatus = state.validation?.status || null;
+  const riskWarning = state.validation?.riskWarning || module3.riskWarning || null;
+  const summaryModeLabel = {
+    overview: "통합 요약",
+    execution: "실행 요약",
+    risk: "리스크 요약"
+  }[mode] || "통합 요약";
+
+  const bundle = {
+    ready: true,
+    mode,
+    title: summaryModeLabel,
+    standardVersion: 1,
+    asOf: state.asOf,
+    module1: {
+      scenario: state.scenario,
+      regime: state.regime,
+      confidence: state.confidence,
+      confidenceLabel: state.confidenceLabel,
+      eventRisk: state.inputs?.eventRisk || null,
+      newsSentiment: state.inputs?.newsSentiment || null,
+      trendStrength: state.inputs?.trendStrength ?? null,
+      marketInterpretation: state.marketInterpretation,
+      regimeReason: state.regimeReason
+    },
+    module2: {
+      regime: module2.regime || null,
+      confidence: module2.confidence || null,
+      topRecommended: (module2.strategy?.recommended || []).slice(0, 3),
+      avoidNow: (module2.strategy?.avoidNow || []).slice(0, 3),
+      allocation: module2.strategy?.allocation || {},
+      committee: module2.committee || null,
+      news: module2.news || null
+    },
+    module3: {
+      status: module3.status || null,
+      statusLabel: module3.statusLabel || null,
+      score: module3.score ?? null,
+      riskLevel: module3.riskLevel || null,
+      riskWarning: module3.riskWarning || null,
+      validationSummary: module3.integrationHint?.oneLineForCard || null,
+      updateSignal: module3.updateSignal || null
+    },
+    module4: {
+      ready: module4.ready || false,
+      strategy: module4.strategy || null,
+      range: module4.range || null,
+      status: module4.status || null,
+      sourceUrl: module4.sourceUrl || null,
+      metrics: module4.metrics || null
+    },
+    overall: {
+      topRecommendation: topRecommended,
+      validationStatus,
+      riskWarning,
+      executionReady: validationStatus === "PASS" && !riskWarning,
+      note: mode === "risk"
+        ? "리스크 중심 점검"
+        : mode === "execution"
+          ? "실행 가능성 중심 점검"
+          : "모듈 1~4 통합 점검"
+    }
+  };
+
+  bundle.text = [
+    `[${bundle.title}]`,
+    `- 기준일: ${bundle.asOf || "N/A"}`,
+    `- 모듈1: 국면 ${bundle.module1.regime || "N/A"} / 확신 ${bundle.module1.confidence ?? "N/A"} / 이벤트 ${bundle.module1.eventRisk || "N/A"}`,
+    `- 모듈2: 추천 ${bundle.module2.topRecommended?.[0]?.name || topRecommended?.name || "N/A"} / 검토 ${bundle.module2.committee?.recommendation || "N/A"}`,
+    `- 모듈3: 상태 ${bundle.module3.statusLabel || bundle.module3.status || "N/A"} / 점수 ${bundle.module3.score ?? "N/A"}`,
+    `- 모듈4: 전략 ${bundle.module4.strategy || "N/A"} / 구간 ${bundle.module4.range || "N/A"} / 상태 ${bundle.module4.status || "N/A"}`,
+    `- 핵심 리스크: ${riskWarning || "N/A"}`
+  ].join("\n");
+
+  if (mode === "execution") {
+    bundle.text += "\n- 실행 포인트: 모듈1 입력과 모듈4 결과를 함께 확인한 뒤 진입 여부를 판단";
+  } else if (mode === "risk") {
+    bundle.text += "\n- 리스크 포인트: validation, event risk, max loss 정의 여부를 우선 확인";
+  } else {
+    bundle.text += "\n- 요약 포인트: 모듈1 변경 -> 모듈2/3 자동 재계산 -> 모듈4 실행 결과까지 함께 확인";
+  }
+
+  return bundle;
+}
+function summarizeStrategyItem(item = {}) {
+  return {
+    name: item.name || null,
+    slug: item.slug || null,
+    strategyScore: item.strategyScore ?? null,
+    riskLevel: item.riskLevel || null,
+    expectedReturn: item.expectedReturn || null,
+    playbookMapping: item.playbookMapping || null,
+    playbookUrl: item.playbookUrl || null
+  };
+}
+
+function getModule2State() {
+  if (!analysis) return { ready: false, note: "Module 2 is not ready yet." };
+  const s = analysis.strategy || {};
+  const news = newsState || {};
+  const newsItems = news.topItems || news.allItems || [];
+  const asOf = analysis.input?.asOf || marketState?.asOf || news.asOf || null;
+
+  return {
+    ready: true,
+    asOf,
+    regime: analysis.regime?.label || null,
+    confidence: {
+      score: analysis.confidence?.score ?? null,
+      label: analysis.confidence?.label || null
+    },
+    committee: analysis.committee ? {
+      recommendation: analysis.committee.recommendation || null,
+      keyRisk: analysis.committee.keyRisk || null,
+      comment: analysis.committee.comment || null
+    } : null,
+    strategy: {
+      recommended: (s.recommended || []).slice(0, 9).map(summarizeStrategyItem),
+      avoidNow: (s.avoidNow || []).slice(0, 6).map(summarizeStrategyItem),
+      watchlist: (s.watchlist || []).slice(0, 3).map(summarizeStrategyItem),
+      allocation: s.allocation || {},
+      defensive: s.defensive || [],
+      momentum: s.momentum || [],
+      carry: s.carry || [],
+      balanced: s.balanced || []
+    },
+    news: {
+      sentiment: news.sentiment || null,
+      asOf: news.asOf || asOf,
+      keywords: (news.keywords || []).slice(0, 8),
+      top: newsItems.slice(0, 6).map((item) => ({
+        title: item.title || null,
+        source: item.source || null,
+        publishedAt: item.publishedAt || null
+      }))
+    },
+    ops: {
+      marketSource: marketState?.source || null,
+      marketNote: marketState?.note || null,
+      dataStatus: byId("data-status")?.textContent || null
+    },
+    note: "Module 2 is derived from Module 1; refresh via Module 1 or refresh_module23."
+  };
+}
+
+function getModule3State() {
+  if (!analysis) return { ready: false, note: "Module 3 is not ready yet." };
+  const validation = analysis.validation || {};
+  const attribution = analysis.attribution || {};
+  const committee = analysis.committee || {};
+  const asOf = analysis.input?.asOf || marketState?.asOf || null;
+
+  return {
+    ready: true,
+    asOf,
+    strategyName: validation.strategyName || null,
+    strategySlug: validation.strategySlug || null,
+    status: validation.status || null,
+    statusLabel: validation.statusLabel || null,
+    score: validation.score ?? null,
+    riskLevel: validation.riskLevel || null,
+    riskWarning: validation.riskWarning || null,
+    backtestAvailable: Boolean(validation.backtestAvailable),
+    maxLossDefined: Boolean(validation.maxLossDefined),
+    beginnerNote: validation.beginnerNote || null,
+    comment: validation.comment || null,
+    committee: {
+      recommendation: committee.recommendation || null,
+      keyRisk: committee.keyRisk || null,
+      comment: committee.comment || null
+    },
+    marketAlignment: validation.marketAlignment || null,
+    integrationHint: validation.integrationHint || null,
+    updateSignal: attribution.updateSignal || null,
+    attribution: {
+      allocationEffect: attribution.allocationEffect ?? null,
+      selectionEffect: attribution.selectionEffect ?? null,
+      interactionEffect: attribution.interactionEffect ?? null,
+      regimeFit: attribution.regimeFit || null,
+      alphaSource: attribution.alphaSource || null,
+      betaSource: attribution.betaSource || null
+    },
+    input: {
+      eventRisk: analysis.input?.eventRisk || null,
+      volatility20d: analysis.input?.volatility20d ?? null,
+      breadth: analysis.input?.breadth || null,
+      tradabilityMaskValid: analysis.input?.tradabilityMaskValid ?? null
+    },
+    note: "Module 3 is derived from Module 1; refresh via Module 1 or refresh_module23."
+  };
+}
+
+async function refreshModule23() {
+  await runAgent();
+  return getRunControlState();
+}
+
 const runControlController = {
   getState: getRunControlState,
+  getModule2State,
+  getModule3State,
+  getSummary(mode = "overview") {
+    return buildSummaryBundle(mode);
+  },
   async setScenario(scenario) {
     applyScenarioInputs(scenario);
     if (scenario === "custom") { currentScenario = "custom"; setText("scenario-status", "Custom"); }
@@ -889,21 +1309,23 @@ const runControlController = {
     return getRunControlState();
   },
   async loadMarketData(asOf) {
-    const date = normalizeDateInput(asOf) || byId("market-date-input")?.value || getDefaultTradingDate();
-    byId("market-date-input").value = date;
-    await loadMarket(date, { useSampleFallback: true });
-    syncFieldsFromMarket(marketState);
-    await loadNews(newsOffset, { useSampleFallback: true });
-    await runAgent();
-    return getRunControlState();
+    return refreshForMarketDate(asOf);
   },
-  async loadNews(offset = 0) {
-    await loadNews(offset, { useSampleFallback: true });
+  async loadNews(offset = 0, asOf) {
+    await loadNews(offset, { useSampleFallback: true, asOf });
     renderNews(newsState);
+    await runAgent();
     return getRunControlState();
   },
   async runAgent() {
     await runAgent();
+    return getRunControlState();
+  },
+  async refreshModule23() {
+    return refreshModule23();
+  },
+  async setModule4Request(request = {}) {
+    await applyModule4Request(request);
     return getRunControlState();
   },
   answerQuestion(question) {
@@ -930,21 +1352,13 @@ function wireEvents() {
     }
 
     if (event.target.closest("#live-data-button") || event.target.closest("#manual-update-button")) {
-      const before = byId("market-date-input").value;
-      await loadMarket(before, { useSampleFallback: true });
-      syncFieldsFromMarket(marketState);
-      await loadNews(newsOffset, { useSampleFallback: true });
-      await runAgent();
+      await refreshForMarketDate(byId("market-date-input").value);
       return;
     }
 
     if (event.target.closest("#reset-date-button")) {
       const defaultDate = getDefaultTradingDate();
-      byId("market-date-input").value = defaultDate;
-      await loadMarket(defaultDate, { useSampleFallback: true });
-      syncFieldsFromMarket(marketState);
-      await loadNews(0, { useSampleFallback: true });
-      await runAgent();
+      await refreshForMarketDate(defaultDate);
       return;
     }
 
@@ -967,11 +1381,12 @@ function wireEvents() {
     }
   });
 
-  document.addEventListener("input", (event) => {
+  document.addEventListener("change", async (event) => {
     if (event.target.matches("#market-date-input")) {
       currentScenario = "custom";
       setText("scenario-status", "Custom");
       renderScenarioButtons();
+      await refreshForMarketDate(event.target.value);
     }
   });
 

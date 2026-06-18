@@ -1,3 +1,5 @@
+import { normalizeDateInput } from "./market-data-provider.mjs";
+
 export const PLAYBOOK_BASE_PATH = "https://bitter-morning-77fd.jager001.workers.dev";
 
 export const SCENARIOS = {
@@ -196,7 +198,7 @@ function buildConfidenceExplanation(regime, input, score) {
   };
 }
 
-function strategySet(regime) {
+function strategySet(regime, asOf) {
   const rec = (name, slug, strategyScore, riskLevel, expectedReturn, playbookMapping) => ({
     name,
     slug,
@@ -212,7 +214,13 @@ function strategySet(regime) {
     rejectReason,
     playbookMapping,
   });
-  const withUrls = (items) => items.map((item) => ({ ...item, playbookUrl: PLAYBOOK_BASE_PATH + "/#strategy/" + item.slug }));
+  const dateQuery = normalizeDateInput(asOf);
+  const withUrls = (items) => items.map((item) => ({
+    ...item,
+    playbookUrl: dateQuery
+      ? `${PLAYBOOK_BASE_PATH}/?asOf=${encodeURIComponent(dateQuery)}#strategy/${item.slug}`
+      : `${PLAYBOOK_BASE_PATH}/#strategy/${item.slug}`
+  }));
 
   if (regime === "Bull/Calm") {
     const recommended = withUrls([
@@ -703,7 +711,7 @@ export function analyzeRegime(input) {
   const regimeId = classifyRegime(input);
   const confidenceScore = confidenceFor(regimeId, input);
   const confidence = buildConfidenceExplanation(regimeId, input, confidenceScore);
-  const strategy = strategySet(regimeId);
+  const strategy = strategySet(regimeId, input?.asOf);
   const validation = buildValidation(regimeId, input, { score: confidenceScore }, strategy);
   const attribution = buildAttribution(regimeId, input);
   const committee = buildCommittee(regimeId, input, { score: confidenceScore }, strategy, validation);

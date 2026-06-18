@@ -1,4 +1,6 @@
-const DEFAULT_QUERY = '"KOSPI200" OR "KOSPI 200" OR "코스피200" OR "코스피 200" when:7d';
+import { normalizeDateInput } from "./market-data-provider.mjs";
+
+const DEFAULT_QUERY = '"KOSPI200" OR "KOSPI 200" OR "KOSPI" OR "ETF"';
 const BLOCKED_SOURCES = new Set(["kmrk.ru"]);
 
 function decodeHtml(value) {
@@ -6,7 +8,7 @@ function decodeHtml(value) {
     .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, "<")
+    .replace(/&gt;/g, ">")
     .replace(/&quot;/g, "\"")
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, " ")
@@ -32,13 +34,21 @@ function cleanTitle(title, source) {
   return cleaned.replace(new RegExp(`\\s-\\s${source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"), "").trim();
 }
 
-function isRelevant(item) {
-  const title = String(item.title || "");
-  const relevant = /(kospi\s?200|코스피\s?200|옵션|지수선물|ETF|ETN|cover|hedge|변동성|breadth)/i.test(title);
-  const sourceKey = String(item.source || "").toLowerCase();
-  const sourceHost = String(item.sourceUrl || "").replace(/^https?:\/\//, "").split("/")[0].toLowerCase();
-  if (BLOCKED_SOURCES.has(sourceKey) || BLOCKED_SOURCES.has(sourceHost)) return false;
-  return relevant;
+function buildDateWindow(asOf) {
+  const date = normalizeDateInput(asOf);
+  if (!date) return null;
+  const nextDay = new Date(`${date}T00:00:00Z`);
+  nextDay.setDate(nextDay.getDate() + 1);
+  return {
+    date,
+    before: nextDay.toISOString().slice(0, 10)
+  };
+}
+
+function buildQueryWithDate(query, asOf) {
+  const window = buildDateWindow(asOf);
+  if (!window) return query;
+  return `${query} after:${window.date} before:${window.before}`;
 }
 
 export function buildGoogleNewsRssUrl(query = DEFAULT_QUERY) {
@@ -47,23 +57,44 @@ export function buildGoogleNewsRssUrl(query = DEFAULT_QUERY) {
   url.searchParams.set("hl", "ko");
   url.searchParams.set("gl", "KR");
   url.searchParams.set("ceid", "KR:ko");
-  return url;
+  return url.toString();
+}
+
+export function buildGoogleNewsSearchUrl(query = DEFAULT_QUERY, asOf) {
+  const url = new URL("https://news.google.com/search");
+  url.searchParams.set("q", buildQueryWithDate(query, asOf));
+  url.searchParams.set("hl", "ko");
+  url.searchParams.set("gl", "KR");
+  url.searchParams.set("ceid", "KR:ko");
+  return url.toString();
+}
+
+function isRelevant(item) {
+  const title = String(item.title || "");
+  const relevant = /(kospi\s?200|kospi|etf|etn|option|volatility|breadth)/i.test(title);
+  const sourceKey = String(item.source || "").toLowerCase();
+  const sourceHost = String(item.sourceUrl || "").replace(/^https?:\/\//, "").split("/")[0].toLowerCase();
+  if (BLOCKED_SOURCES.has(sourceKey) || BLOCKED_SOURCES.has(sourceHost)) return false;
+  return relevant;
 }
 
 export function parseGoogleNewsRss(xml, options = {}) {
   const limit = options.limit || 12;
+  const asOf = options.asOf;
   const itemBlocks = String(xml || "").match(/<item>[\s\S]*?<\/item>/gi) || [];
   const items = itemBlocks
     .map((block) => {
       const source = sourceValue(block);
       const rawTitle = tagValue(block, "title");
       const publishedAt = tagValue(block, "pubDate");
+      const title = cleanTitle(rawTitle, source.source);
       return {
-        title: cleanTitle(rawTitle, source.source),
+        title,
         link: tagValue(block, "link"),
         publishedAt,
         timestamp: Number.isFinite(Date.parse(publishedAt)) ? Date.parse(publishedAt) : 0,
-        ...source
+        ...source,
+        searchUrl: buildGoogleNewsSearchUrl(`"${title}"`, asOf)
       };
     })
     .filter((item) => item.title && item.link && isRelevant(item))
@@ -98,17 +129,24 @@ export function extractNewsKeywords(items, limit = 8) {
 export function summarizeNewsContext(items, options = {}) {
   const pageSize = options.pageSize || 3;
   const offset = options.offset || 0;
-  const allItems = (items || []).filter(Boolean);
+  const asOf = normalizeDateInput(options.asOf) || new Date().toISOString().slice(0, 10);
+  const allItems = (items || []).filter(Boolean).map((item) => ({
+    ...item,
+    sourceUrl: item.sourceUrl || item.link || "",
+    searchUrl: item.searchUrl || buildGoogleNewsSearchUrl(`"${item.title || ""}"`, asOf)
+  }));
   const topItems = allItems.slice(offset, offset + pageSize);
   const text = topItems.map((item) => item.title).join(" ");
-  const positive = /(상승|강세|호조|개선|확대|반등|증가)/i.test(text);
-  const negative = /(하락|약세|부진|축소|위험|경계|감소)/i.test(text);
+  const positive = ["\uC0C1\uC2B9", "\uAC15\uC138", "\uD638\uD669", "\uBC18\uB4F1", "\uAC1C\uC120", "\uD655\uB300"]
+    .some((term) => text.includes(term));
+  const negative = ["\uD558\uB77D", "\uC57D\uC138", "\uCE68\uCCB4", "\uC704\uD5D8", "\uAC10\uC18C", "\uC545\uD654"]
+    .some((term) => text.includes(term));
   const sentiment = positive && negative ? "mixed" : positive ? "positive" : negative ? "negative" : "neutral";
   const keywords = extractNewsKeywords(topItems);
 
   return {
     provider: "Google News RSS",
-    asOf: new Date().toISOString().slice(0, 10),
+    asOf,
     sentiment,
     keywords,
     allItems,
@@ -121,13 +159,14 @@ export function summarizeNewsContext(items, options = {}) {
     },
     topItems,
     interpretation: keywords.length
-      ? `최근 뉴스/리포트에서 ${keywords.slice(0, 5).join(", ")} 흐름이 반복됩니다.`
-      : "최근 뉴스/리포트의 반복 키워드가 충분하지 않습니다."
+      ? `최근 뉴스/리포트에서 ${keywords.slice(0, 5).join(", ")} 키워드가 반복됩니다.`
+      : "최근 뉴스/리포트의 반복 키워드를 충분히 추출하지 못했습니다."
   };
 }
 
-export async function fetchGoogleNewsContext(fetchImpl = fetch) {
-  const response = await fetchImpl(buildGoogleNewsRssUrl(), {
+export async function fetchGoogleNewsContext(fetchImpl = fetch, options = {}) {
+  const query = buildQueryWithDate(DEFAULT_QUERY, options.asOf);
+  const response = await fetchImpl(buildGoogleNewsRssUrl(query), {
     headers: {
       "User-Agent": "Mozilla/5.0 KOSPI200-Option-Warfare/1.0",
       "Accept": "application/rss+xml, application/xml, text/xml"
@@ -139,5 +178,5 @@ export async function fetchGoogleNewsContext(fetchImpl = fetch) {
   }
 
   const xml = await response.text();
-  return summarizeNewsContext(parseGoogleNewsRss(xml, { limit: 12 }).items);
+  return summarizeNewsContext(parseGoogleNewsRss(xml, { limit: 12, asOf: options.asOf }).items, { asOf: options.asOf });
 }

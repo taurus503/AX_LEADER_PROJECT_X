@@ -439,11 +439,33 @@ button, input, select, textarea { font: inherit; }
   background: rgba(255, 255, 255, 0.03);
 }
 
+.reason-card:hover,
+.news-card:hover,
+.theme-card:hover {
+  border-color: rgba(113, 179, 255, 0.42);
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .reason-card .title,
 .news-card .title {
   margin-top: 6px;
   font-weight: 900;
   line-height: 1.5;
+}
+
+.news-title-link,
+.theme-title-link {
+  color: var(--ink);
+  font-weight: 900;
+  line-height: 1.5;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.news-title-link:hover,
+.theme-title-link:hover,
+.mini-link:hover {
+  text-decoration: underline;
 }
 
 .reason-card .text,
@@ -687,6 +709,10 @@ button, input, select, textarea { font: inherit; }
   font-size: 14px;
 }
 
+.theme-title-link {
+  display: inline-block;
+}
+
 .theme-meta {
   display: flex;
   flex-wrap: wrap;
@@ -700,6 +726,13 @@ button, input, select, textarea { font: inherit; }
   color: var(--muted);
   line-height: 1.6;
   font-size: 12px;
+}
+
+.mini-link {
+  color: #7dd3fc;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .allocation-block {

@@ -22,5 +22,9 @@ Open `index.html` in a browser.
 ## Deploy on Vercel
 Deploy this folder as the project root. No build step is required.
 
+## JSON snapshot endpoint
+- `GET /api/agent-result`
+- Returns the latest regime, playbook, validation, attribution, committee, and battle plan payload as JSON
+
 ## Flow
 `sample-data.json` -> `app.js` -> market/news APIs -> dashboard sections -> battle plan

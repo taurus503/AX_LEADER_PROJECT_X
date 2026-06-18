@@ -1,0 +1,10 @@
+﻿{
+    "source_files":  32685,
+    "source_zips":  2,
+    "raw_rows":  32685,
+    "kept_rows":  32684,
+    "skipped_blank":  0,
+    "skipped_recording_specific":  0,
+    "skipped_casual_question":  1,
+    "classifier_rows":  32684
+}

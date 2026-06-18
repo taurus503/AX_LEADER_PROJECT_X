@@ -1,0 +1,32 @@
+# Local environment variables and secrets
+.env
+.env.*
+!.env.example
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
+supabase-access-token.txt
+config.js
+config.local.js
+config.*.local.js
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+*.log
+*.tmp
+*.bak
+
+.vercel
+
+.vercel
+*.zip
+_market.json
+_news.json
+AX_LEADER_PROJECT_X-codex-*/
+data - 복사본/

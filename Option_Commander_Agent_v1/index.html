@@ -585,12 +585,12 @@
       <section class="panel">
         <div class="section-head">
           <h2>Chat UI</h2>
-          <span id="turnHint">질문을 입력하면 Commander가 실행됩니다.</span>
+          <span id="turnHint">자연어 질문을 입력하면 Commander가 LLM으로 의도를 해석합니다.</span>
         </div>
         <div id="transcript" class="transcript" aria-live="polite"></div>
         <div class="quick-prompts" id="quickPrompts" aria-label="quick prompts"></div>
         <form id="composer" class="composer">
-          <textarea id="questionInput" placeholder="예: 이번 월물 추천"></textarea>
+          <textarea id="questionInput" placeholder="예: 이번 월물 추천이 궁금한데, 초보자 기준으로 설명해줘"></textarea>
           <div class="composer-meta">
             <label for="asOfDateInput">기준일(선택)</label>
             <input id="asOfDateInput" type="date" />

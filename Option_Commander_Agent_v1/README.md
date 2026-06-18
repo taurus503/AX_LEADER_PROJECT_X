@@ -15,6 +15,7 @@ Operational minimum version of the Option Commander Agent.
   - Final answer synthesis
 - If `BIZROUTER_API_KEY` exists, the final answer uses BizRouter's OpenAI-compatible Chat Completions API
 - If the LLM call fails, the server falls back to a mock answer
+- If `KOSPI200_AGENT_JSON_URL` exists, Commander fetches the KOSPI200 snapshot JSON first and uses it as the primary upstream source
 - The UI shows an execution trace with:
   - question
   - intent
@@ -44,6 +45,7 @@ Copy `.env.example` to `.env` locally and set:
 - `BIZROUTER_API_KEY`
 - `BIZROUTER_BASE_URL`
 - `BIZROUTER_MODEL`
+- `KOSPI200_AGENT_JSON_URL`
 
 Do not commit `.env`.
 

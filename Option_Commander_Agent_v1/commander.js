@@ -79,6 +79,42 @@ function extractDateHint(value = "") {
   return "";
 }
 
+function getDefaultTradingDate(referenceDate = new Date()) {
+  const date = new Date(referenceDate);
+  date.setDate(date.getDate() - 1);
+  while (date.getDay() === 0 || date.getDay() === 6) {
+    date.setDate(date.getDate() - 1);
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function postDateSync(asOfDate, source = "Commander") {
+  const normalized = extractDateHint(asOfDate) || getDefaultTradingDate();
+  window.parent?.postMessage(
+    {
+      type: "commander-date-sync",
+      asOfDate: normalized,
+      source
+    },
+    "*"
+  );
+  return normalized;
+}
+
+function applyDateInput(value, { broadcast = true, source = "Commander" } = {}) {
+  const normalized = extractDateHint(value) || getDefaultTradingDate();
+  if (els.asOfDateInput) {
+    els.asOfDateInput.value = normalized;
+  }
+  if (broadcast) {
+    postDateSync(normalized, source);
+  }
+  return normalized;
+}
+
 function loadMemoryRecords() {
   try {
     const raw = window.localStorage.getItem(MEMORY_KEY);
@@ -236,11 +272,13 @@ function renderToolCalls(response) {
                 : call.agent === "Memory Agent"
                   ? `Stored memory: ${call.output.regime || "-"} / ${call.output.strategy || "-"} / ${call.output.result || "-"}`
                   : `Update signal: ${call.output.updateSignal || "-"}`;
+      const source = call.source ? `<p style="margin-top:6px;color:var(--muted);font-size:12px;">source: ${escapeHtml(call.source)}</p>` : "";
 
       return `
         <article class="trail-card">
           <strong>${escapeHtml(call.agent)}</strong>
           <p>${escapeHtml(summary)}</p>
+          ${source}
           <p style="margin-top:6px;color:var(--muted);font-size:12px;">retry ${call.retry_count || 0} / ${call.fallback_used ? "fallback used" : "normal"}</p>
         </article>
       `;
@@ -280,6 +318,7 @@ function renderExecutionTrace(response) {
     ["intent", trace.intent],
     ["date_hint", trace.date_hint || ""],
     ["historical_mode", String(Boolean(trace.historical_mode))],
+    ["question_profile", trace.question_profile ? JSON.stringify(trace.question_profile, null, 2) : ""],
     ["selected_agents", Array.isArray(trace.selected_agents) ? trace.selected_agents.join(" / ") : ""],
     ["tool_results", JSON.stringify((trace.tool_results || []).map((item) => ({
       agent: item.agent,
@@ -291,6 +330,8 @@ function renderExecutionTrace(response) {
     ["retry_count", String(trace.retry_count ?? 0)],
     ["fallback_used", String(Boolean(trace.fallback_used))],
     ["failed_tools", Array.isArray(trace.failed_tools) ? trace.failed_tools.join(", ") : ""],
+    ["snapshot_source", trace.snapshot_source || ""],
+    ["snapshot_used", String(Boolean(trace.snapshot_used))],
     ["final_answer", trace.final_answer]
   ];
 
@@ -346,6 +387,7 @@ function renderDecisionTrail(response) {
     <p style="margin-top:10px;color:var(--muted);font-size:12px;white-space:pre-wrap;">${escapeHtml(JSON.stringify({
       intent: response?.intent,
       confidence: response?.confidence,
+      question_profile: response?.question_profile,
       selected_agents: response?.selected_agents,
       fallback_plan: response?.fallback_plan,
       execution_plan: executionPlan.map((item) => ({ agent: item.agent, purpose: item.purpose }))
@@ -359,22 +401,22 @@ function renderMetrics(response) {
   els.plannerRing.style.setProperty("--score", confidencePct);
   els.plannerScore.textContent = `${confidencePct}%`;
   els.selectedCount.textContent = String(selectedAgents.length);
-  els.currentIntent.textContent = response?.intent || "Strategy";
+  els.currentIntent.textContent = response?.question_profile?.intent || response?.intent || "Strategy";
   els.metricConfidence.textContent = `${confidencePct}%`;
-  els.metricConfidenceNote.textContent = response?.reason?.[0] || "Planner confidence based on routing clarity.";
+  els.metricConfidenceNote.textContent = response?.question_profile?.answer_focus || response?.reason?.[0] || "Planner confidence based on routing clarity.";
   els.metricDepth.textContent = String(selectedAgents.length);
   els.metricDepthNote.textContent = `${selectedAgents.length} tools are connected.`;
   els.metricReadiness.textContent = response?.validation_label || "REVIEW";
   els.metricReadinessNote.textContent = response?.core_risk || "Validation output not available.";
-  els.metricIntent.textContent = response?.intent || "Strategy";
-  els.metricIntentNote.textContent = response?.recommended_strategy || response?.final_answer || "Ready";
+  els.metricIntent.textContent = response?.question_profile?.intent || response?.intent || "Strategy";
+  els.metricIntentNote.textContent = response?.question_profile?.answer_focus || response?.recommended_strategy || response?.final_answer || "Ready";
   els.latencyLabel.textContent = response?.fallback_used ? "Fallback" : "API";
   els.updatedAt.textContent = response?.tool_results?.length ? fmtTime(new Date().toISOString()) : "Ready";
   els.turnHint.textContent = response?.date_hint
-    ? `Historical mode enabled for ${response.date_hint}.`
+    ? `Historical mode enabled for ${response.date_hint}. Natural-language question routed through LLM.`
     : response?.memory_used
       ? "Memory agent referenced prior JSON."
-      : "Commander API is driving the flow.";
+      : "Commander API is driving the flow with LLM question understanding.";
 }
 
 function pushConversation(userText, response) {
@@ -394,7 +436,7 @@ function pushConversation(userText, response) {
 }
 
 function mockFallbackResponse(question) {
-  const dateHint = extractDateHint(els.asOfDateInput?.value || question);
+  const dateHint = extractDateHint(question) || extractDateHint(els.asOfDateInput?.value || "");
   const isStrategy = /추천|전략|month|monthly|strategy/i.test(question);
   const regime = isStrategy ? "Transition" : "Bull/Calm";
   const strategy = isStrategy ? "Iron Condor" : "Bull Call Spread";
@@ -463,7 +505,12 @@ function mockFallbackResponse(question) {
 }
 
 async function callCommander(question) {
-  const dateHint = extractDateHint(els.asOfDateInput?.value || question);
+  const questionDateHint = extractDateHint(question);
+  const currentDateHint = extractDateHint(els.asOfDateInput?.value || "");
+  const dateHint = applyDateInput(questionDateHint || currentDateHint || question, {
+    broadcast: true,
+    source: "Commander Submit"
+  });
   const response = await fetch("./api/commander", {
     method: "POST",
     headers: {
@@ -473,8 +520,9 @@ async function callCommander(question) {
       question,
       memory_records: state.memory,
       hints: {
-        as_of_date: dateHint || null,
-        date_hint: dateHint || null
+        as_of_date: questionDateHint || dateHint || null,
+        date_hint: questionDateHint || dateHint || null,
+        question_date_hint: questionDateHint || null
       }
     })
   });
@@ -519,9 +567,7 @@ async function bootstrap() {
   state.registry = await loadRegistry();
   renderQuickPrompts(state.registry.prompts || []);
   els.questionInput.value = state.registry.prompts?.[0] || "이번 월물 추천";
-  if (els.asOfDateInput) {
-    els.asOfDateInput.value = "";
-  }
+  applyDateInput(getDefaultTradingDate(), { broadcast: true, source: "Commander Boot" });
   renderMemoryList();
   renderTranscript();
   renderRegistry();
@@ -541,12 +587,14 @@ els.questionInput.addEventListener("keydown", (event) => {
   }
 });
 
+els.asOfDateInput.addEventListener("change", (event) => {
+  applyDateInput(event.target.value, { broadcast: true, source: "Commander Date Change" });
+});
+
 els.resetBtn.addEventListener("click", () => {
   state.history = [];
   els.questionInput.value = "";
-  if (els.asOfDateInput) {
-    els.asOfDateInput.value = "";
-  }
+  applyDateInput(getDefaultTradingDate(), { broadcast: true, source: "Commander Reset" });
   state.lastResponse = null;
   renderTranscript();
   renderRegistry();
@@ -572,6 +620,13 @@ els.memoryForm.addEventListener("submit", (event) => {
 els.memoryRefreshBtn.addEventListener("click", () => {
   state.memory = loadMemoryRecords();
   renderMemoryList();
+});
+
+window.addEventListener("message", (event) => {
+  const data = event.data;
+  if (!data || typeof data !== "object") return;
+  if (data.type !== "combined-date-sync" && data.type !== "commander-date-sync" && data.type !== "regime-date-sync") return;
+  applyDateInput(data.asOfDate, { broadcast: false, source: "Commander Sync" });
 });
 
 bootstrap();

@@ -533,6 +533,14 @@ els.composer.addEventListener("submit", (event) => {
   runPlan();
 });
 
+els.questionInput.addEventListener("keydown", (event) => {
+  if (event.isComposing) return;
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    els.composer.requestSubmit();
+  }
+});
+
 els.resetBtn.addEventListener("click", () => {
   state.history = [];
   els.questionInput.value = "";
